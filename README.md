@@ -2,8 +2,6 @@
 
 Modern Payroll Management System built with Vanilla JavaScript.
 
-![PayrollPro Preview]((https://yousef-magar.github.io/payrollpro-platform/))
-
 ## 🚀 Features
 
 - Excel & CSV Upload
