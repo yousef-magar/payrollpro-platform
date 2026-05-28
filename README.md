@@ -251,15 +251,7 @@ This project was intentionally built using **Pure JavaScript** to demonstrate st
 
 Without relying on frameworks or backend infrastructure.
 
----
 
-# 📬 Contact
-
-If you're an HR manager, recruiter, or developer interested in collaboration or opportunities:
-
-* LinkedIn
-* Portfolio
-* GitHub
 
 ---
 
