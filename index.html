@@ -1,0 +1,2139 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PayrollPro — نظام الرواتب الذكي</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="db.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* ===========================
+   RESET & ROOT
+=========================== */
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --green:#2eb87e;--green-dark:#1a8f5f;--green-light:#4ecf97;--green-glow:rgba(46,184,126,.25);
+  --bg:#060d18;--bg2:#0a1525;--bg3:#0f1e35;--bg4:#142540;
+  --card:#0d1b2e;--card2:#111f33;--border:#1a2f4a;--border2:#203a58;
+  --text:#dce8f5;--muted:#5a7a99;--muted2:#3d5a78;--accent:#2eb87e;--accent2:#7ecfad;
+  --red:#f05252;--amber:#f5a623;--blue:#4a9eff;--purple:#a78bfa;
+  --gold:#f5c842;
+  --ff:'IBM Plex Sans Arabic', Tahoma, sans-serif;
+  --mono:'Space Mono', monospace;
+  --r8:8px;--r12:12px;--r16:16px;--r24:24px;
+}
+html{scroll-behavior:smooth;font-size:16px}
+body{font-family:var(--ff);background:var(--bg);color:var(--text);line-height:1.65;overflow-x:hidden}
+::selection{background:var(--green-glow);color:#fff}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:var(--bg2)}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+/* ===========================
+   LANDING PAGE
+=========================== */
+#landing{display:block}
+#app-root{display:none}
+
+/* ---- NAV ---- */
+.lp-nav{
+  position:fixed;top:0;left:0;right:0;z-index:200;
+  height:68px;padding:0 48px;
+  display:flex;align-items:center;justify-content:space-between;
+  background:rgba(6,13,24,.88);
+  backdrop-filter:blur(20px);
+  border-bottom:1px solid rgba(26,47,74,.6);
+  transition:all .3s;
+}
+.lp-nav.scrolled{background:rgba(6,13,24,.97);border-bottom-color:var(--border)}
+.lp-logo{display:flex;align-items:center;gap:12px;text-decoration:none;cursor:pointer}
+.lp-logo-icon{
+  width:40px;height:40px;border-radius:10px;
+  background:linear-gradient(135deg,var(--green-dark),var(--green-light));
+  display:flex;align-items:center;justify-content:center;font-size:20px;
+  box-shadow:0 0 20px var(--green-glow);
+}
+.lp-logo-text{font-size:19px;font-weight:800;color:#fff;letter-spacing:-.02em}
+.lp-logo-text span{color:var(--green-light)}
+.lp-nav-links{display:flex;align-items:center;gap:4px}
+.lp-nav-links a{color:var(--muted);text-decoration:none;padding:8px 14px;border-radius:var(--r8);font-size:14px;font-weight:500;transition:.2s}
+.lp-nav-links a:hover{color:var(--text);background:var(--bg3)}
+.lp-lang-toggle{
+  display:flex;align-items:center;gap:6px;padding:6px 14px;
+  border:1px solid var(--border);border-radius:var(--r8);
+  color:var(--muted);font-size:13px;cursor:pointer;
+  background:transparent;font-family:var(--ff);
+  transition:.2s;margin-left:8px;
+}
+.lp-lang-toggle:hover{border-color:var(--green);color:var(--accent)}
+.lp-cta-btn{
+  background:linear-gradient(135deg,var(--green-dark),var(--green));
+  color:#fff;padding:10px 22px;border-radius:var(--r8);
+  font-size:14px;font-weight:700;text-decoration:none;
+  transition:.2s;border:none;cursor:pointer;font-family:var(--ff);
+  box-shadow:0 4px 16px var(--green-glow);
+}
+.lp-cta-btn:hover{transform:translateY(-1px);box-shadow:0 8px 24px var(--green-glow)}
+
+/* ---- HERO ---- */
+.lp-hero{
+  min-height:100vh;display:flex;align-items:center;justify-content:center;
+  padding:120px 24px 80px;position:relative;overflow:hidden;text-align:center;
+}
+.hero-bg{
+  position:absolute;inset:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse 90% 70% at 50% 20%,rgba(46,184,126,.07) 0%,transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 80%,rgba(74,158,255,.04) 0%,transparent 50%),
+    radial-gradient(ellipse 50% 30% at 10% 60%,rgba(167,139,250,.04) 0%,transparent 50%);
+}
+.hero-grid-lines{
+  position:absolute;inset:0;pointer-events:none;opacity:.03;
+  background-image:
+    linear-gradient(0deg,transparent 24px,rgba(46,184,126,.5) 25px),
+    linear-gradient(90deg,transparent 24px,rgba(46,184,126,.5) 25px);
+  background-size:25px 25px;
+}
+.hero-content{position:relative;z-index:1;max-width:800px}
+.hero-badge{
+  display:inline-flex;align-items:center;gap:8px;
+  background:rgba(46,184,126,.1);border:1px solid rgba(46,184,126,.25);
+  color:var(--accent2);padding:6px 18px;border-radius:999px;font-size:13px;
+  font-weight:600;margin-bottom:32px;
+  animation:fadeUp .6s ease both;
+}
+.hero-badge .dot{width:6px;height:6px;background:var(--green-light);border-radius:50%;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.5)}}
+.hero-h1{
+  font-size:clamp(38px,6vw,76px);font-weight:800;line-height:1.08;
+  margin-bottom:26px;color:#fff;letter-spacing:-.03em;
+  animation:fadeUp .6s .1s ease both;
+}
+.hero-h1 .grad{
+  background:linear-gradient(135deg,var(--green-light),var(--blue));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.hero-sub{
+  font-size:18px;color:var(--muted);max-width:560px;margin:0 auto 44px;
+  line-height:1.75;font-weight:400;
+  animation:fadeUp .6s .2s ease both;
+}
+.hero-actions{
+  display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-bottom:64px;
+  animation:fadeUp .6s .3s ease both;
+}
+.btn-hero-primary{
+  background:linear-gradient(135deg,var(--green-dark),var(--green-light));
+  color:#fff;padding:17px 40px;border-radius:var(--r12);
+  font-size:16px;font-weight:700;text-decoration:none;
+  transition:.25s;display:inline-flex;align-items:center;gap:10px;
+  box-shadow:0 8px 32px var(--green-glow);border:none;cursor:pointer;font-family:var(--ff);
+}
+.btn-hero-primary:hover{transform:translateY(-2px);box-shadow:0 14px 40px var(--green-glow)}
+.btn-hero-outline{
+  background:transparent;color:var(--text);padding:17px 36px;border-radius:var(--r12);
+  font-size:16px;font-weight:600;text-decoration:none;
+  border:1px solid var(--border2);transition:.25s;
+  display:inline-flex;align-items:center;gap:10px;
+}
+.btn-hero-outline:hover{border-color:var(--green);color:var(--accent2)}
+.hero-stats{
+  display:flex;gap:48px;justify-content:center;flex-wrap:wrap;
+  animation:fadeUp .6s .4s ease both;
+}
+.h-stat{text-align:center}
+.h-stat-num{font-size:30px;font-weight:800;color:#fff;font-family:var(--mono)}
+.h-stat-num .unit{font-size:16px;font-weight:400;color:var(--green-light)}
+.h-stat-lbl{font-size:12px;color:var(--muted);margin-top:4px;font-weight:500}
+
+/* ---- SECTION COMMON ---- */
+.lp-section{padding:110px 24px}
+.lp-container{max-width:1140px;margin:0 auto}
+.sec-label{
+  display:inline-flex;align-items:center;gap:8px;
+  font-size:12px;font-weight:700;color:var(--green-light);
+  letter-spacing:.12em;text-transform:uppercase;margin-bottom:14px;
+}
+.sec-label::before{content:'';width:20px;height:2px;background:var(--green);border-radius:2px}
+.sec-h2{font-size:clamp(28px,4vw,44px);font-weight:800;color:#fff;margin-bottom:16px;line-height:1.15;letter-spacing:-.02em}
+.sec-sub{font-size:17px;color:var(--muted);max-width:520px;line-height:1.75}
+.text-center{text-align:center}.text-center .sec-sub{margin:0 auto}
+.text-center .sec-label{justify-content:center}
+
+/* ---- FEATURES ---- */
+#features{background:var(--bg2)}
+.feat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:20px;margin-top:60px}
+.feat-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--r16);padding:30px;
+  transition:.3s;position:relative;overflow:hidden;
+}
+.feat-card::after{
+  content:'';position:absolute;inset:0;opacity:0;transition:.3s;
+  background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(46,184,126,.06),transparent);
+}
+.feat-card:hover{border-color:rgba(46,184,126,.35);transform:translateY(-4px)}
+.feat-card:hover::after{opacity:1}
+.feat-icon{
+  width:52px;height:52px;border-radius:var(--r12);
+  background:rgba(46,184,126,.12);border:1px solid rgba(46,184,126,.2);
+  display:flex;align-items:center;justify-content:center;font-size:26px;
+  margin-bottom:20px;
+}
+.feat-card h3{font-size:17px;font-weight:700;color:#fff;margin-bottom:10px}
+.feat-card p{font-size:14px;color:var(--muted);line-height:1.8}
+.feat-tag{
+  display:inline-block;margin-top:14px;
+  font-size:11px;font-weight:700;color:var(--green-light);
+  background:rgba(46,184,126,.1);border:1px solid rgba(46,184,126,.2);
+  padding:3px 10px;border-radius:999px;
+}
+
+/* ---- NEW FEATURE HIGHLIGHT ---- */
+.new-feat-section{background:var(--bg)}
+.new-feat-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:60px}
+.new-feat-card{
+  border-radius:var(--r24);padding:36px;position:relative;overflow:hidden;
+  border:1px solid var(--border2);
+}
+.new-feat-card.primary{
+  background:linear-gradient(135deg,rgba(46,184,126,.08),rgba(46,184,126,.02));
+  border-color:rgba(46,184,126,.3);
+}
+.new-feat-card.secondary{
+  background:linear-gradient(135deg,rgba(74,158,255,.06),rgba(74,158,255,.01));
+  border-color:rgba(74,158,255,.2);
+}
+.new-feat-card .nf-badge{
+  font-size:11px;font-weight:700;color:var(--green-light);
+  background:rgba(46,184,126,.12);border:1px solid rgba(46,184,126,.25);
+  padding:3px 12px;border-radius:999px;display:inline-block;margin-bottom:20px;
+}
+.new-feat-card.secondary .nf-badge{color:var(--blue);background:rgba(74,158,255,.1);border-color:rgba(74,158,255,.25)}
+.new-feat-card h3{font-size:22px;font-weight:800;color:#fff;margin-bottom:12px}
+.new-feat-card p{font-size:15px;color:var(--muted);line-height:1.8}
+.new-feat-mockup{
+  margin-top:24px;border-radius:var(--r12);border:1px solid rgba(255,255,255,.08);
+  overflow:hidden;background:var(--bg3);padding:16px;
+}
+.mock-header{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:10px 14px;background:rgba(30,52,80,.8);border-radius:var(--r8);margin-bottom:10px;
+  border:1px solid var(--border);
+}
+.mock-header .logo-spot{display:flex;align-items:center;gap:10px}
+.mock-header .logo-box{width:30px;height:22px;background:var(--green);border-radius:4px;opacity:.7}
+.mock-header .co-info .t1{font-size:10px;font-weight:700;color:#fff}
+.mock-header .co-info .t2{font-size:9px;color:var(--muted)}
+.mock-header .meta{font-size:9px;color:var(--muted);text-align:left}
+.mock-colrow{display:flex;gap:4px;padding:6px 8px;background:rgba(30,52,80,.6);border-radius:6px;margin-bottom:8px}
+.mock-col{height:12px;border-radius:3px;background:rgba(126,207,173,.3);flex:1}
+.mock-col:first-child{flex:2.5}
+.mock-row{display:flex;gap:4px;padding:6px 8px;background:rgba(22,35,54,.5);border-radius:6px;margin-bottom:4px;align-items:center}
+.mock-cell{height:10px;border-radius:3px;background:rgba(197,223,240,.15);flex:1}
+.mock-cell:first-child{flex:2.5;background:rgba(197,223,240,.25)}
+
+/* ---- HOW IT WORKS ---- */
+#how-it-works{background:var(--bg2)}
+.how-steps{display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin-top:64px;position:relative}
+.how-steps::before{
+  content:'';position:absolute;top:27px;right:12.5%;left:12.5%;height:2px;
+  background:linear-gradient(90deg,var(--green-dark),transparent);
+  opacity:.3;z-index:0;
+}
+.how-step{text-align:center;padding:0 20px;position:relative;z-index:1}
+.how-num{
+  width:54px;height:54px;border-radius:50%;
+  background:linear-gradient(135deg,var(--green-dark),var(--green));
+  color:#fff;font-size:20px;font-weight:800;
+  display:flex;align-items:center;justify-content:center;
+  margin:0 auto 20px;box-shadow:0 0 30px var(--green-glow);
+  font-family:var(--mono);
+}
+.how-step h4{font-size:15px;font-weight:700;color:#fff;margin-bottom:8px}
+.how-step p{font-size:13px;color:var(--muted);line-height:1.7}
+
+/* ---- PRICING ---- */
+.price-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:60px}
+.price-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--r16);padding:36px;text-align:center;
+  transition:.3s;position:relative;overflow:hidden;
+}
+.price-card.pop{
+  border-color:var(--green);
+  background:linear-gradient(180deg,rgba(46,184,126,.06),var(--card));
+}
+.price-card.pop::before{
+  content:'الأكثر طلباً';position:absolute;top:-1px;right:50%;transform:translateX(50%);
+  background:var(--green);color:#fff;font-size:11px;font-weight:700;
+  padding:4px 16px;border-radius:0 0 10px 10px;
+}
+.price-name{font-size:13px;font-weight:700;color:var(--accent2);margin-bottom:20px;text-transform:uppercase;letter-spacing:.08em}
+.price-amt{font-size:52px;font-weight:800;color:#fff;line-height:1;font-family:var(--mono)}
+.price-amt sub{font-size:15px;font-weight:400;color:var(--muted);vertical-align:bottom;margin-bottom:6px;display:inline-block}
+.price-period{font-size:13px;color:var(--muted);margin:8px 0 28px}
+.price-ul{list-style:none;text-align:right;margin-bottom:32px}
+.price-ul li{font-size:14px;color:var(--muted);padding:9px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.price-ul li:last-child{border:none}
+.ok{color:var(--green);font-size:16px;flex-shrink:0}
+.no{color:var(--red);font-size:16px;flex-shrink:0}
+.price-btn{
+  width:100%;padding:14px;border-radius:var(--r8);
+  font-size:15px;font-weight:700;cursor:pointer;border:none;
+  font-family:var(--ff);transition:.2s;text-decoration:none;display:block;text-align:center;
+}
+.price-btn-green{background:var(--green);color:#fff}.price-btn-green:hover{background:var(--green-dark)}
+.price-btn-outline{background:transparent;color:var(--muted);border:1px solid var(--border)}.price-btn-outline:hover{border-color:var(--green);color:var(--accent)}
+
+/* ---- TESTIMONIALS ---- */
+#testimonials{background:var(--bg2)}
+.review-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:60px}
+.review-card{
+  background:var(--card);border:1px solid var(--border);border-radius:var(--r16);padding:28px;
+  transition:.25s;
+}
+.review-card:hover{border-color:var(--border2);transform:translateY(-2px)}
+.stars{color:var(--gold);font-size:14px;letter-spacing:3px;margin-bottom:16px}
+.review-text{font-size:14px;color:var(--muted);line-height:1.85;margin-bottom:20px}
+.reviewer{display:flex;align-items:center;gap:12px}
+.rev-av{
+  width:38px;height:38px;border-radius:50%;flex-shrink:0;
+  background:linear-gradient(135deg,var(--green-dark),var(--green));
+  color:#fff;font-weight:700;font-size:13px;
+  display:flex;align-items:center;justify-content:center;
+}
+.rev-name{font-size:14px;font-weight:700;color:#fff}
+.rev-role{font-size:12px;color:var(--muted)}
+
+/* ---- CTA ---- */
+.cta-box{
+  background:linear-gradient(135deg,rgba(46,184,126,.1),rgba(46,184,126,.03));
+  border:1px solid rgba(46,184,126,.25);
+  border-radius:var(--r24);padding:80px 40px;text-align:center;max-width:840px;margin:0 auto;
+  position:relative;overflow:hidden;
+}
+.cta-box::before{
+  content:'';position:absolute;top:-60px;left:50%;transform:translateX(-50%);
+  width:300px;height:300px;border-radius:50%;
+  background:radial-gradient(circle,rgba(46,184,126,.12),transparent 70%);
+  pointer-events:none;
+}
+
+/* ---- FOOTER ---- */
+.lp-footer{
+  background:var(--bg2);border-top:1px solid var(--border);
+  padding:40px 24px;
+}
+.footer-inner{
+  max-width:1140px;margin:0 auto;
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;
+}
+.footer-brand{display:flex;align-items:center;gap:10px;text-decoration:none}
+.footer-copy{font-size:13px;color:var(--muted)}
+.footer-copy a{color:var(--accent2);text-decoration:none}
+.footer-links{display:flex;gap:20px}
+.footer-links a{font-size:13px;color:var(--muted);text-decoration:none;transition:.2s}
+.footer-links a:hover{color:var(--accent2)}
+
+/* FADE ANIMATIONS */
+@keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+.fade-in{opacity:0;transform:translateY(30px);transition:opacity .6s ease,transform .6s ease}
+.fade-in.visible{opacity:1;transform:translateY(0)}
+
+/* ===========================
+   APP SHELL
+=========================== */
+#app-root{min-height:100vh;display:flex;flex-direction:column}
+
+/* ---- TOP NAV ---- */
+.app-nav{
+  height:60px;background:var(--bg2);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 28px;position:sticky;top:0;z-index:100;flex-shrink:0;
+}
+.app-logo{display:flex;align-items:center;gap:10px;cursor:pointer;text-decoration:none}
+.app-logo-icon{
+  width:32px;height:32px;border-radius:8px;
+  background:linear-gradient(135deg,var(--green-dark),var(--green-light));
+  display:flex;align-items:center;justify-content:center;font-size:16px;
+}
+.app-logo-text{font-size:17px;font-weight:800;color:#fff}
+.app-logo-text span{color:var(--green-light)}
+.app-nav-right{display:flex;align-items:center;gap:10px}
+.app-user-badge{
+  display:flex;align-items:center;gap:8px;
+  background:var(--bg3);border:1px solid var(--border);border-radius:999px;
+  padding:4px 14px 4px 6px;
+}
+.app-user-av{
+  width:28px;height:28px;border-radius:50%;
+  background:linear-gradient(135deg,var(--green-dark),var(--green));
+  color:#fff;font-weight:700;font-size:12px;
+  display:flex;align-items:center;justify-content:center;
+}
+.app-user-name{font-size:13px;font-weight:600;color:var(--text)}
+.btn-logout{
+  background:transparent;border:1px solid var(--border);
+  color:var(--muted);padding:6px 14px;border-radius:var(--r8);
+  font-size:13px;cursor:pointer;font-family:var(--ff);transition:.2s;
+}
+.btn-logout:hover{border-color:var(--red);color:var(--red)}
+
+/* ---- LAYOUT ---- */
+.app-body{display:flex;flex:1;min-height:0}
+.sidebar{
+  width:210px;background:var(--bg2);border-left:1px solid var(--border);
+  padding:18px 10px;flex-shrink:0;overflow-y:auto;
+}
+.sidebar-section-label{
+  font-size:10px;font-weight:700;color:var(--muted2);
+  text-transform:uppercase;letter-spacing:.1em;
+  padding:6px 12px;margin-top:8px;margin-bottom:4px;
+}
+.sidebar-item{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 12px;border-radius:var(--r8);
+  font-size:13.5px;font-weight:500;color:var(--muted);
+  cursor:pointer;transition:.15s;margin-bottom:2px;
+}
+.sidebar-item:hover{background:var(--bg3);color:var(--text)}
+.sidebar-item.active{background:rgba(46,184,126,.12);color:var(--accent2);font-weight:700}
+.sidebar-item .sico{font-size:17px;width:20px;text-align:center;flex-shrink:0}
+
+.app-main{flex:1;padding:28px 32px;overflow-y:auto}
+.page{display:none}.page.active{display:block}
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:26px}
+.page-title{font-size:20px;font-weight:800;color:#fff}
+.page-sub{font-size:13px;color:var(--muted);margin-top:3px}
+
+/* ---- CARDS ---- */
+.card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--r16);padding:24px;margin-bottom:20px;
+}
+.card-title{
+  font-size:14px;font-weight:700;color:var(--accent2);
+  margin-bottom:18px;display:flex;align-items:center;gap:8px;
+}
+.card-title::before{content:'';width:3px;height:14px;background:var(--green);border-radius:2px}
+
+/* ---- FORM ELEMENTS ---- */
+.field{margin-bottom:14px}
+.field label,.fl{font-size:12px;font-weight:600;color:var(--muted);display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em}
+.inp{
+  width:100%;background:var(--bg3);border:1px solid var(--border);
+  border-radius:var(--r8);color:var(--text);
+  padding:10px 14px;font-size:14px;font-family:var(--ff);outline:none;
+  transition:.2s;
+}
+.inp:focus{border-color:var(--green);background:var(--bg4)}
+.inp::placeholder{color:var(--muted2)}
+select.inp{cursor:pointer}
+.settings-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+
+/* ---- BUTTONS ---- */
+.btn{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:10px 20px;border-radius:var(--r8);
+  font-size:14px;font-weight:700;cursor:pointer;border:none;
+  transition:.2s;font-family:var(--ff);text-decoration:none;
+}
+.btn-primary{background:linear-gradient(135deg,var(--green-dark),var(--green));color:#fff}
+.btn-primary:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 6px 20px var(--green-glow)}
+.btn-primary:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-ghost{background:var(--bg3);color:var(--muted);border:1px solid var(--border)}
+.btn-ghost:hover{background:var(--bg4);color:var(--text)}
+.btn-danger{background:rgba(240,82,82,.12);color:var(--red);border:1px solid rgba(240,82,82,.2)}
+.btn-danger:hover{background:rgba(240,82,82,.2)}
+.btn-sm{padding:7px 14px;font-size:13px}
+.btn-full{width:100%;justify-content:center;padding:13px}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+
+/* ---- STATUS ---- */
+.status-bar{padding:11px 15px;border-radius:var(--r8);font-size:13px;display:none;align-items:center;gap:8px;margin-top:14px;font-weight:500}
+.status-bar.success{background:rgba(46,184,126,.1);border:1px solid rgba(46,184,126,.3);color:var(--green-light);display:flex}
+.status-bar.error{background:rgba(240,82,82,.1);border:1px solid rgba(240,82,82,.3);color:var(--red);display:flex}
+.status-bar.info{background:rgba(74,158,255,.08);border:1px solid rgba(74,158,255,.25);color:var(--blue);display:flex}
+.status-bar.warning{background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.25);color:var(--amber);display:flex}
+
+/* ---- AUTH SCREEN ---- */
+#auth-screen{
+  min-height:100vh;display:flex;align-items:center;justify-content:center;
+  padding:24px;
+  background:radial-gradient(ellipse 80% 60% at 50% 40%,rgba(46,184,126,.07),transparent 60%);
+}
+.auth-box{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--r24);padding:44px;width:100%;max-width:430px;
+}
+.auth-logo{text-align:center;margin-bottom:32px}
+.auth-logo-icon{
+  width:64px;height:64px;border-radius:16px;
+  background:linear-gradient(135deg,var(--green-dark),var(--green-light));
+  display:flex;align-items:center;justify-content:center;font-size:30px;
+  margin:0 auto 14px;box-shadow:0 0 40px var(--green-glow);
+}
+.auth-logo h1{font-size:24px;font-weight:800;color:#fff}
+.auth-logo p{font-size:13px;color:var(--muted);margin-top:4px}
+.auth-tabs{display:flex;background:var(--bg);border-radius:var(--r8);padding:4px;margin-bottom:26px;gap:4px}
+.auth-tab{
+  flex:1;text-align:center;padding:9px;border-radius:6px;
+  font-size:14px;font-weight:600;cursor:pointer;color:var(--muted);transition:.2s;
+}
+.auth-tab.active{background:var(--green);color:#fff}
+.auth-msg{font-size:13px;padding:10px 14px;border-radius:var(--r8);margin-top:12px;display:none;font-weight:500}
+.auth-msg.error{background:rgba(240,82,82,.1);color:var(--red);border:1px solid rgba(240,82,82,.3);display:block}
+.auth-msg.success{background:rgba(46,184,126,.1);color:var(--green-light);border:1px solid rgba(46,184,126,.3);display:block}
+
+/* ---- UPLOAD ZONE ---- */
+.upload-zone{
+  border:2px dashed var(--border2);border-radius:var(--r12);
+  padding:52px 24px;text-align:center;cursor:pointer;transition:.3s;background:var(--bg3);
+}
+.upload-zone:hover,.upload-zone.dragging{border-color:var(--green);background:rgba(46,184,126,.04)}
+.upload-zone input{display:none}
+.upload-icon{font-size:52px;margin-bottom:16px;display:block}
+.upload-zone h3{font-size:16px;color:#c5dff0;margin-bottom:6px;font-weight:700}
+.upload-zone p{font-size:13px;color:var(--muted)}
+
+/* ---- STEPS ---- */
+.step-bar{display:flex;align-items:center;margin-bottom:26px;gap:0}
+.step-node{
+  display:flex;align-items:center;gap:10px;
+  font-size:13px;font-weight:600;
+  color:var(--muted2);white-space:nowrap;flex:1;
+}
+.step-circle{
+  width:30px;height:30px;border-radius:50%;border:2px solid var(--border2);
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:800;flex-shrink:0;transition:.3s;font-family:var(--mono);
+}
+.step-line{flex:1;height:2px;background:var(--border);margin:0 8px;transition:.3s}
+.step-node.active .step-circle{border-color:var(--green);background:var(--green);color:#fff}
+.step-node.active{color:var(--accent2)}
+.step-node.done .step-circle{border-color:var(--green-dark);background:var(--green-dark);color:#fff}
+.step-node.done .step-circle::after{content:'✓'}
+.step-node.done{color:var(--green-light)}
+.step-line.done{background:var(--green-dark)}
+
+/* ---- COLUMN MAPPING ---- */
+.col-map-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.col-map-item{display:flex;align-items:center;gap:10px}
+.col-map-item label{font-size:13px;color:var(--muted);min-width:130px;font-weight:500}
+
+/* ---- RULES GRID ---- */
+.rules-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.rule-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r8);padding:14px}
+.rule-card label{font-size:12px;color:var(--muted);display:block;margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+.rule-card .rc-desc{font-size:11px;color:var(--muted2);margin-top:4px}
+
+/* ---- SUMMARY CARDS ---- */
+.sum-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.sum-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r12);padding:16px;text-align:center}
+.sum-card .sv{font-size:22px;font-weight:800;margin-bottom:4px;font-family:var(--mono)}
+.sum-card .sl{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.06em}
+.sum-card.blue .sv{color:var(--blue)}.sum-card.green .sv{color:var(--green-light)}
+.sum-card.red .sv{color:var(--red)}.sum-card.amber .sv{color:var(--amber)}
+
+/* ---- PREVIEW TABLE ---- */
+.tbl-wrap{overflow-x:auto;border-radius:var(--r8);border:1px solid var(--border)}
+.preview-table{width:100%;border-collapse:collapse;font-size:13px}
+.preview-table th{
+  background:var(--bg4);color:var(--accent2);
+  padding:10px 14px;text-align:right;font-weight:700;font-size:12px;
+  border-bottom:2px solid var(--border2);white-space:nowrap;
+  text-transform:uppercase;letter-spacing:.05em;
+}
+.preview-table td{padding:10px 14px;border-bottom:1px solid var(--border);color:#c5dff0}
+.preview-table tr:hover td{background:var(--bg4)}
+.badge{display:inline-block;padding:2px 9px;border-radius:5px;font-size:11px;font-weight:700}
+.badge-red{background:rgba(240,82,82,.12);color:var(--red);border:1px solid rgba(240,82,82,.25)}
+.badge-green{background:rgba(46,184,126,.1);color:var(--green-light);border:1px solid rgba(46,184,126,.2)}
+.badge-amber{background:rgba(245,166,35,.1);color:var(--amber);border:1px solid rgba(245,166,35,.2)}
+
+/* ---- COMPANY PAGE ---- */
+.logo-upload-zone{
+  border:2px dashed var(--border2);border-radius:var(--r12);
+  padding:32px;text-align:center;cursor:pointer;transition:.3s;
+}
+.logo-upload-zone:hover{border-color:var(--green)}
+.logo-preview-img{max-height:70px;max-width:130px;object-fit:contain;border-radius:var(--r8);border:1px solid var(--border);display:none}
+
+/* ---- PDF SETTINGS ---- */
+.pdf-settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.color-row{display:flex;align-items:center;gap:10px}
+.color-row input[type=color]{width:42px;height:34px;border:1px solid var(--border);border-radius:var(--r8);background:var(--bg3);padding:2px;cursor:pointer;flex-shrink:0}
+.color-row .inp{flex:1;font-family:var(--mono);font-size:13px}
+
+/* ---- COLUMN ORDER ---- */
+.col-order-list{display:flex;flex-direction:column;gap:6px}
+.col-order-item{
+  display:flex;align-items:center;gap:10px;
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:var(--r8);padding:9px 12px;cursor:grab;
+  transition:.15s;
+}
+.col-order-item:active{cursor:grabbing}
+.col-order-item:hover{border-color:var(--border2)}
+.col-order-item .drag-h{color:var(--muted2);font-size:16px;flex-shrink:0}
+.col-order-item .col-lbl{flex:1;font-size:13px;color:var(--text);font-weight:500}
+.col-order-item input[type=text]{
+  width:120px;background:var(--card);border:1px solid var(--border);
+  border-radius:6px;color:var(--text);padding:5px 9px;font-size:12px;font-family:var(--ff);outline:none;
+}
+.col-order-item input[type=number]{
+  width:65px;background:var(--card);border:1px solid var(--border);
+  border-radius:6px;color:var(--text);padding:5px 9px;font-size:12px;text-align:center;outline:none;
+}
+.vis-toggle{width:36px;height:20px;border-radius:10px;border:none;cursor:pointer;transition:.25s;flex-shrink:0;position:relative}
+.vis-toggle.on{background:var(--green)}.vis-toggle.off{background:var(--muted2)}
+
+/* ---- REPORT MODE TOGGLE ---- */
+.mode-toggle-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+.mode-card{
+  flex:1;min-width:180px;border:2px solid var(--border);
+  border-radius:var(--r12);padding:16px;cursor:pointer;transition:.25s;
+  background:var(--bg3);
+}
+.mode-card:hover{border-color:var(--border2)}
+.mode-card.selected{border-color:var(--green);background:rgba(46,184,126,.06)}
+.mode-card .mc-icon{font-size:24px;margin-bottom:8px}
+.mode-card .mc-title{font-size:14px;font-weight:700;color:#fff;margin-bottom:4px}
+.mode-card .mc-desc{font-size:12px;color:var(--muted);line-height:1.6}
+
+/* ---- REPORTS LIST ---- */
+.reports-list{display:flex;flex-direction:column;gap:10px}
+.report-item{
+  display:flex;align-items:center;justify-content:space-between;
+  background:var(--bg3);border:1px solid var(--border);border-radius:var(--r12);padding:16px 20px;
+  transition:.2s;
+}
+.report-item:hover{border-color:var(--border2)}
+.report-item .ri-name{font-size:14px;font-weight:700;color:var(--text)}
+.report-item .ri-meta{font-size:12px;color:var(--muted);margin-top:4px}
+.empty-state{text-align:center;padding:60px;color:var(--muted)}
+.empty-state .es-ico{font-size:52px;margin-bottom:14px}
+.empty-state p{font-size:15px}
+
+/* ---- PDF HIDDEN TEMPLATE ---- */
+#pdf-template{
+  position:fixed;left:-9999px;top:0;
+  width:1122px;background:#0d2137;color:#e8edf2;
+  font-family:'Segoe UI',Tahoma,Arial,sans-serif;direction:rtl;padding:0;
+}
+.pdf-header{
+  padding:18px 26px;display:flex;justify-content:space-between;align-items:center;
+  border-bottom:3px solid #2d6a4f;
+}
+.pdf-co-name{font-size:20px;font-weight:800;color:#fff}
+.pdf-co-sub{font-size:12px;color:#7ecfad;margin-top:3px}
+.pdf-meta{text-align:left;font-size:10px;color:#5a7a94;line-height:1.6}
+.pdf-summary-row{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:#1e3450}
+.pdf-sum-box{background:#162336;padding:10px 16px;text-align:center}
+.pdf-sum-box .psv{font-size:16px;font-weight:700}
+.pdf-sum-box .psl{font-size:10px;color:#5a7a94;margin-top:2px}
+.pdf-table{width:100%;border-collapse:collapse}
+.pdf-table th{background:#1e3450;color:#7ecfad;padding:9px 10px;text-align:center;font-weight:600;border-bottom:2px solid #2d6a4f;white-space:nowrap}
+.pdf-table td{padding:7px 10px;border-bottom:1px solid #1a2d42;text-align:center;color:#c5dff0}
+.pdf-table tr:nth-child(even) td{background:#0f1923}
+.pdf-table .total-row td{background:#1a2d42!important;color:#fff;font-weight:700;border-top:2px solid #2d6a4f}
+.pdf-name-td{text-align:right!important;font-weight:700;color:#e8edf2!important}
+.pdf-footer{padding:8px 26px;display:flex;justify-content:space-between;font-size:9px;color:#3d5a72;border-top:1px solid #1e3450}
+/* Individual slip styles */
+.pdf-slip-wrap{padding:14px 20px}
+.pdf-slip{
+  border:1px solid #1e3450;border-radius:10px;margin-bottom:22px;
+  overflow:hidden;page-break-inside:avoid;background:#0f1c2e;
+}
+.pdf-slip-header{
+  padding:14px 18px;display:flex;justify-content:space-between;align-items:center;
+  border-bottom:2px solid;
+}
+.pdf-slip-header .sco{display:flex;align-items:center;gap:12px}
+.pdf-slip-header .sco .sname{font-size:16px;font-weight:800;color:#fff}
+.pdf-slip-header .sco .ssub{font-size:11px;color:#7ecfad;margin-top:2px}
+.pdf-slip-header .smeta{font-size:10px;color:#5a7a94;text-align:left;line-height:1.6}
+.pdf-slip-colrow{display:flex;background:#1e3450}
+.pdf-slip-colrow .pdf-slip-col{flex:1;padding:7px 12px;font-size:10px;font-weight:700;color:#7ecfad;text-align:center;border-left:1px solid #162336}
+.pdf-slip-colrow .pdf-slip-col:first-child{border:none;text-align:right}
+.pdf-slip-datarow{display:flex;background:#162336}
+.pdf-slip-datarow.alt{background:#0f1923}
+.pdf-slip-datarow .pdf-slip-cell{flex:1;padding:7px 12px;font-size:11px;color:#c5dff0;text-align:center;border-left:1px solid #162336}
+.pdf-slip-datarow .pdf-slip-cell:first-child{border:none;text-align:right;font-weight:700;color:#e8edf2}
+.pdf-slip-summary{display:flex;justify-content:flex-start;gap:20px;padding:10px 14px;background:#1a2d42;flex-wrap:wrap}
+.pdf-slip-summary .ps-item{display:flex;flex-direction:column;align-items:center;gap:2px}
+.pdf-slip-summary .ps-val{font-size:14px;font-weight:800}
+.pdf-slip-summary .ps-lbl{font-size:9px;color:#5a7a94}
+
+/* ---- CHECKBOX TOGGLE ---- */
+.toggle-row{display:flex;align-items:center;gap:12px;padding:8px 0;cursor:pointer}
+.toggle-row input[type=checkbox]{width:16px;height:16px;accent-color:var(--green);cursor:pointer}
+.toggle-row span{font-size:14px;color:var(--text);font-weight:500}
+
+/* ---- RESPONSIVE ---- */
+@media(max-width:900px){
+  .lp-nav{padding:0 20px}
+  .new-feat-grid,.price-grid,.review-grid{grid-template-columns:1fr}
+  .how-steps{grid-template-columns:1fr 1fr}
+  .how-steps::before{display:none}
+}
+@media(max-width:700px){
+  .sidebar{display:none}
+  .sum-cards{grid-template-columns:1fr 1fr}
+  .rules-grid{grid-template-columns:1fr 1fr}
+  .pdf-settings-grid{grid-template-columns:1fr}
+  .col-map-grid{grid-template-columns:1fr}
+  .feat-grid,.how-steps{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- ================================================================
+     LANDING PAGE
+================================================================ -->
+<div id="landing">
+
+  <!-- NAV -->
+  <nav class="lp-nav" id="lp-nav">
+    <div class="lp-logo" onclick="scrollToTop()">
+      <div class="lp-logo-icon">📊</div>
+      <div class="lp-logo-text">Payroll<span>Pro</span></div>
+    </div>
+    <div class="lp-nav-links">
+      <a href="#features" data-ar="المميزات" data-en="Features">المميزات</a>
+      <a href="#how-it-works" data-ar="كيف يعمل" data-en="How It Works">كيف يعمل</a>
+      <a href="#pricing" data-ar="الأسعار" data-en="Pricing">الأسعار</a>
+      <button class="lp-lang-toggle" onclick="toggleLang()" id="lang-btn">🌐 English</button>
+      <button class="lp-cta-btn" onclick="openApp()" data-ar="تسجيل الدخول ←" data-en="Sign In →">تسجيل الدخول ←</button>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="lp-hero">
+    <div class="hero-bg"></div>
+    <div class="hero-grid-lines"></div>
+    <div class="hero-content">
+      <div class="hero-badge">
+        <span class="dot"></span>
+        <span data-ar="نظام رواتب احترافي — مجاناً تماماً" data-en="Professional Payroll System — Completely Free">نظام رواتب احترافي — مجاناً تماماً</span>
+      </div>
+      <h1 class="hero-h1">
+        <span data-ar="إدارة رواتب موظفيك" data-en="Manage Your Employee">إدارة رواتب موظفيك</span><br>
+        <span class="grad" data-ar="بذكاء وسرعة" data-en="Salaries Smarter & Faster">بذكاء وسرعة</span>
+      </h1>
+      <p class="hero-sub" data-ar="ارفع ملف Excel، حدد قواعد الخصم، واحصل على تقرير PDF احترافي بالعربية في ثوانٍ — بدون أي خبرة تقنية." data-en="Upload Excel, set deduction rules, and get a professional Arabic PDF report in seconds — no technical knowledge needed.">
+        ارفع ملف Excel، حدد قواعد الخصم، واحصل على تقرير PDF احترافي بالعربية في ثوانٍ — بدون أي خبرة تقنية.
+      </p>
+      <div class="hero-actions">
+        <button class="btn-hero-primary" onclick="openApp()" data-ar="🚀 ابدأ مجاناً الآن" data-en="🚀 Start Free Now">🚀 ابدأ مجاناً الآن</button>
+        <a class="btn-hero-outline" href="#features" data-ar="اعرف المزيد ↓" data-en="Learn More ↓">اعرف المزيد ↓</a>
+      </div>
+      <div class="hero-stats">
+        <div class="h-stat">
+          <div class="h-stat-num">PDF<span class="unit"></span></div>
+          <div class="h-stat-lbl" data-ar="تقارير احترافية" data-en="Professional Reports">تقارير احترافية</div>
+        </div>
+        <div class="h-stat">
+          <div class="h-stat-num">100<span class="unit">%</span></div>
+          <div class="h-stat-lbl" data-ar="دعم العربية" data-en="Arabic Support">دعم العربية</div>
+        </div>
+        <div class="h-stat">
+          <div class="h-stat-num">∞</div>
+          <div class="h-stat-lbl" data-ar="موظفين بلا حدود" data-en="Unlimited Employees">موظفين بلا حدود</div>
+        </div>
+        <div class="h-stat">
+          <div class="h-stat-num">🔒</div>
+          <div class="h-stat-lbl" data-ar="بياناتك خاصة" data-en="Your Data is Private">بياناتك خاصة</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section id="features" class="lp-section fade-in">
+    <div class="lp-container">
+      <div class="text-center">
+        <div class="sec-label" data-ar="المميزات" data-en="Features">المميزات</div>
+        <h2 class="sec-h2" data-ar="كل ما تحتاجه في مكان واحد" data-en="Everything You Need in One Place">كل ما تحتاجه في مكان واحد</h2>
+        <p class="sec-sub" data-ar="منصة متكاملة لإدارة الرواتب بدون تعقيدات" data-en="A complete platform for payroll management without complexity">منصة متكاملة لإدارة الرواتب بدون تعقيدات</p>
+      </div>
+      <div class="feat-grid">
+        <div class="feat-card fade-in">
+          <div class="feat-icon">📂</div>
+          <h3 data-ar="استيراد Excel و CSV" data-en="Excel & CSV Import">استيراد Excel و CSV</h3>
+          <p data-ar="ارفع ملف البيانات بأي تنسيق — النظام يكتشف الأعمدة ويربطها تلقائياً حتى لو كانت أسماؤها بالعربية." data-en="Upload data in any format — the system auto-detects columns even with Arabic headers.">ارفع ملف البيانات بأي تنسيق — النظام يكتشف الأعمدة ويربطها تلقائياً حتى لو كانت أسماؤها بالعربية.</p>
+          <span class="feat-tag" data-ar="دعم كامل للعربية" data-en="Full Arabic Support">دعم كامل للعربية</span>
+        </div>
+        <div class="feat-card fade-in">
+          <div class="feat-icon">🖨️</div>
+          <h3 data-ar="تقارير PDF احترافية" data-en="Professional PDF Reports">تقارير PDF احترافية</h3>
+          <p data-ar="قوالب مصممة بعناية مع دعم كامل للعربية واتجاه RTL — جاهزة للطباعة والمشاركة فوراً." data-en="Carefully designed templates with full Arabic RTL support — ready to print and share instantly.">قوالب مصممة بعناية مع دعم كامل للعربية واتجاه RTL — جاهزة للطباعة والمشاركة فوراً.</p>
+          <span class="feat-tag" data-ar="دعم RTL" data-en="RTL Support">دعم RTL</span>
+        </div>
+        <div class="feat-card fade-in">
+          <div class="feat-icon">⚙️</div>
+          <h3 data-ar="قواعد خصم مرنة" data-en="Flexible Deduction Rules">قواعد خصم مرنة</h3>
+          <p data-ar="اضبط نسبة خصم التأخير والغياب وأيام العمل — الحسابات تتم تلقائياً بدقة لكل موظف." data-en="Set late & absent deduction percentages and work days — calculations happen automatically per employee.">اضبط نسبة خصم التأخير والغياب وأيام العمل — الحسابات تتم تلقائياً بدقة لكل موظف.</p>
+          <span class="feat-tag" data-ar="حسابات تلقائية" data-en="Auto Calculations">حسابات تلقائية</span>
+        </div>
+        <div class="feat-card fade-in">
+          <div class="feat-icon">🎨</div>
+          <h3 data-ar="تخصيص كامل للتصميم" data-en="Full Design Customization">تخصيص كامل للتصميم</h3>
+          <p data-ar="غيّر الألوان والخطوط وترتيب الأعمدة وحجمها — حتى إخفاء أعمدة بعينها بكبسة زر." data-en="Change colors, fonts, column order and size — even hide specific columns with one click.">غيّر الألوان والخطوط وترتيب الأعمدة وحجمها — حتى إخفاء أعمدة بعينها بكبسة زر.</p>
+          <span class="feat-tag" data-ar="تخصيص كامل" data-en="Full Customization">تخصيص كامل</span>
+        </div>
+        <div class="feat-card fade-in">
+          <div class="feat-icon">🏢</div>
+          <h3 data-ar="لوجو وهوية شركتك" data-en="Company Logo & Identity">لوجو وهوية شركتك</h3>
+          <p data-ar="أضف لوجو شركتك وبياناتها — تظهر في كل تقرير تولّده تلقائياً باحترافية كاملة." data-en="Add your company logo and info — appears automatically in every report you generate.">أضف لوجو شركتك وبياناتها — تظهر في كل تقرير تولّده تلقائياً باحترافية كاملة.</p>
+          <span class="feat-tag" data-ar="هوية بصرية" data-en="Visual Identity">هوية بصرية</span>
+        </div>
+        <div class="feat-card fade-in">
+          <div class="feat-icon">👤</div>
+          <h3 data-ar="حسابات مستقلة آمنة" data-en="Secure Independent Accounts">حسابات مستقلة آمنة</h3>
+          <p data-ar="كل مستخدم له حساب مستقل محمي — بياناتك محفوظة محلياً ولا تخرج من جهازك أبداً." data-en="Each user has an independent protected account — your data is stored locally and never leaves your device.">كل مستخدم له حساب مستقل محمي — بياناتك محفوظة محلياً ولا تخرج من جهازك أبداً.</p>
+          <span class="feat-tag" data-ar="خصوصية 100%" data-en="100% Private">خصوصية 100%</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- NEW FEATURES HIGHLIGHT -->
+  <section class="lp-section new-feat-section fade-in" style="padding-top:0">
+    <div class="lp-container">
+      <div class="text-center" style="margin-bottom:0">
+        <div class="sec-label" data-ar="جديد" data-en="New">جديد</div>
+        <h2 class="sec-h2" data-ar="ميزات حصرية متطورة" data-en="Exclusive Advanced Features">ميزات حصرية متطورة</h2>
+      </div>
+      <div class="new-feat-grid">
+        <div class="new-feat-card primary">
+          <div class="nf-badge" data-ar="✨ جديد — كشف فردي" data-en="✨ New — Individual Slip">✨ جديد — كشف فردي</div>
+          <h3 data-ar="كشف راتب لكل موظف على حدة" data-en="Individual Pay Slip Per Employee">كشف راتب لكل موظف على حدة</h3>
+          <p data-ar="وضع جديد يُخرج لكل موظف بلوك منفصل فيه لوجو الشركة + عناوين الأعمدة + بياناته الخاصة — كأنه إيصال راتب شخصي يُسلَّم لكل موظف منفرداً." data-en="A new mode that generates a separate block per employee with company logo + column headers + their own data — like a personal pay slip delivered to each employee individually.">وضع جديد يُخرج لكل موظف بلوك منفصل فيه لوجو الشركة + عناوين الأعمدة + بياناته الخاصة — كأنه إيصال راتب شخصي يُسلَّم لكل موظف منفرداً.</p>
+          <div class="new-feat-mockup">
+            <div class="mock-header">
+              <div class="logo-spot"><div class="logo-box"></div><div class="co-info"><div class="t1">اسم الشركة</div><div class="t2">كشف راتب — يناير 2026</div></div></div>
+              <div class="meta">
+                <div>موظف: أحمد محمد</div>
+                <div>رقم: 001</div>
+              </div>
+            </div>
+            <div class="mock-colrow">
+              <div class="mock-col" style="flex:2.5"></div>
+              <div class="mock-col"></div><div class="mock-col"></div>
+              <div class="mock-col"></div><div class="mock-col"></div>
+            </div>
+            <div class="mock-row">
+              <div class="mock-cell" style="flex:2.5"></div>
+              <div class="mock-cell"></div><div class="mock-cell"></div>
+              <div class="mock-cell"></div><div class="mock-cell"></div>
+            </div>
+          </div>
+        </div>
+        <div class="new-feat-card secondary">
+          <div class="nf-badge" data-ar="⚡ تكرار الهيدر" data-en="⚡ Repeat Header">⚡ تكرار الهيدر</div>
+          <h3 data-ar="هيدر الشركة فوق كل موظف" data-en="Company Header Above Every Employee">هيدر الشركة فوق كل موظف</h3>
+          <p data-ar="في وضع الجدول الكلاسيكي، فعّل خيار تكرار الهيدر فيُطبع هيدر الشركة + صف عناوين الأعمدة قبل كل موظف مباشرةً — مثالي للمستندات الطويلة." data-en="In classic table mode, enable the header repeat option to print the company header + column titles before each employee — ideal for long documents.">في وضع الجدول الكلاسيكي، فعّل خيار تكرار الهيدر فيُطبع هيدر الشركة + صف عناوين الأعمدة قبل كل موظف مباشرةً — مثالي للمستندات الطويلة.</p>
+          <div class="new-feat-mockup">
+            <div class="mock-header" style="margin-bottom:4px">
+              <div class="logo-spot"><div class="logo-box"></div><div class="co-info"><div class="t1">الشركة</div><div class="t2">يناير 2026</div></div></div>
+              <div class="meta">عناوين الأعمدة ↓</div>
+            </div>
+            <div class="mock-colrow" style="margin-bottom:4px">
+              <div class="mock-col" style="flex:2.5"></div>
+              <div class="mock-col"></div><div class="mock-col"></div>
+            </div>
+            <div class="mock-row" style="margin-bottom:8px">
+              <div class="mock-cell" style="flex:2.5"></div>
+              <div class="mock-cell"></div><div class="mock-cell"></div>
+            </div>
+            <div class="mock-header" style="margin-bottom:4px;opacity:.7">
+              <div class="logo-spot"><div class="logo-box"></div><div class="co-info"><div class="t1">الشركة</div><div class="t2">يناير 2026</div></div></div>
+              <div class="meta">يتكرر ↓</div>
+            </div>
+            <div class="mock-colrow" style="margin-bottom:4px;opacity:.7">
+              <div class="mock-col" style="flex:2.5"></div>
+              <div class="mock-col"></div><div class="mock-col"></div>
+            </div>
+            <div class="mock-row" style="opacity:.7">
+              <div class="mock-cell" style="flex:2.5"></div>
+              <div class="mock-cell"></div><div class="mock-cell"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section id="how-it-works" class="lp-section fade-in" style="background:var(--bg2)">
+    <div class="lp-container">
+      <div class="text-center">
+        <div class="sec-label" data-ar="كيف يعمل" data-en="How It Works">كيف يعمل</div>
+        <h2 class="sec-h2" data-ar="4 خطوات بسيطة" data-en="4 Simple Steps">4 خطوات بسيطة</h2>
+      </div>
+      <div class="how-steps">
+        <div class="how-step fade-in">
+          <div class="how-num">1</div>
+          <h4 data-ar="أنشئ حساباً" data-en="Create Account">أنشئ حساباً</h4>
+          <p data-ar="سجّل ببيزرنيم وباسورد وأضف بيانات شركتك ولوجوها" data-en="Register with username & password, add company info and logo">سجّل ببيزرنيم وباسورد وأضف بيانات شركتك ولوجوها</p>
+        </div>
+        <div class="how-step fade-in">
+          <div class="how-num">2</div>
+          <h4 data-ar="ارفع ملف الموظفين" data-en="Upload Employee File">ارفع ملف الموظفين</h4>
+          <p data-ar="Excel أو CSV — النظام يقرأ الأعمدة تلقائياً ويكتشف العربية" data-en="Excel or CSV — system auto-reads columns and detects Arabic">Excel أو CSV — النظام يقرأ الأعمدة تلقائياً ويكتشف العربية</p>
+        </div>
+        <div class="how-step fade-in">
+          <div class="how-num">3</div>
+          <h4 data-ar="اضبط الإعدادات" data-en="Configure Settings">اضبط الإعدادات</h4>
+          <p data-ar="قواعد الخصم ونمط التقرير وتصميم PDF حسب ذوقك" data-en="Deduction rules, report mode, PDF design to your taste">قواعد الخصم ونمط التقرير وتصميم PDF حسب ذوقك</p>
+        </div>
+        <div class="how-step fade-in">
+          <div class="how-num">4</div>
+          <h4 data-ar="اطبع PDF" data-en="Print PDF">اطبع PDF</h4>
+          <p data-ar="تقرير احترافي جاهز للطباعة — جدول موحد أو كشوف فردية" data-en="Professional report ready to print — unified table or individual slips">تقرير احترافي جاهز للطباعة — جدول موحد أو كشوف فردية</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRICING -->
+  <section id="pricing" class="lp-section fade-in">
+    <div class="lp-container">
+      <div class="text-center">
+        <div class="sec-label" data-ar="الأسعار" data-en="Pricing">الأسعار</div>
+        <h2 class="sec-h2" data-ar="خطط مناسبة للجميع" data-en="Plans for Everyone">خطط مناسبة للجميع</h2>
+      </div>
+      <div class="price-grid">
+        <div class="price-card">
+          <div class="price-name" data-ar="مجاني" data-en="Free">مجاني</div>
+          <div class="price-amt">0<sub data-ar="ج.م" data-en="EGP">ج.م</sub></div>
+          <div class="price-period" data-ar="للأبد" data-en="Forever">للأبد</div>
+          <ul class="price-ul">
+            <li><span class="ok">✓</span><span data-ar="حتى 50 موظف" data-en="Up to 50 employees">حتى 50 موظف</span></li>
+            <li><span class="ok">✓</span><span data-ar="رفع Excel / CSV" data-en="Excel / CSV upload">رفع Excel / CSV</span></li>
+            <li><span class="ok">✓</span><span data-ar="تقارير PDF" data-en="PDF Reports">تقارير PDF</span></li>
+            <li><span class="no">✗</span><span data-ar="كشوف راتب فردية" data-en="Individual pay slips">كشوف راتب فردية</span></li>
+            <li><span class="no">✗</span><span data-ar="تخصيص تصميم PDF" data-en="Custom PDF design">تخصيص تصميم PDF</span></li>
+          </ul>
+          <button class="price-btn price-btn-outline" onclick="openApp()" data-ar="ابدأ مجاناً" data-en="Start Free">ابدأ مجاناً</button>
+        </div>
+        <div class="price-card pop">
+          <div class="price-name" data-ar="احترافي" data-en="Pro">احترافي</div>
+          <div class="price-amt">199<sub data-ar="ج.م" data-en="EGP">ج.م</sub></div>
+          <div class="price-period" data-ar="شهرياً" data-en="Monthly">شهرياً</div>
+          <ul class="price-ul">
+            <li><span class="ok">✓</span><span data-ar="موظفين غير محدودين" data-en="Unlimited employees">موظفين غير محدودين</span></li>
+            <li><span class="ok">✓</span><span data-ar="كشوف راتب فردية" data-en="Individual pay slips">كشوف راتب فردية ✨</span></li>
+            <li><span class="ok">✓</span><span data-ar="تكرار الهيدر" data-en="Repeat header per row">تكرار الهيدر لكل موظف</span></li>
+            <li><span class="ok">✓</span><span data-ar="لوجو الشركة في التقارير" data-en="Company logo in reports">لوجو الشركة في التقارير</span></li>
+            <li><span class="ok">✓</span><span data-ar="تخصيص كامل للتصميم" data-en="Full design customization">تخصيص كامل للتصميم</span></li>
+          </ul>
+          <button class="price-btn price-btn-green" onclick="openApp()" data-ar="ابدأ تجربة مجانية" data-en="Start Free Trial">ابدأ تجربة مجانية</button>
+        </div>
+        <div class="price-card">
+          <div class="price-name" data-ar="مؤسسي" data-en="Enterprise">مؤسسي</div>
+          <div class="price-amt">499<sub data-ar="ج.م" data-en="EGP">ج.م</sub></div>
+          <div class="price-period" data-ar="شهرياً" data-en="Monthly">شهرياً</div>
+          <ul class="price-ul">
+            <li><span class="ok">✓</span><span data-ar="كل مميزات الاحترافي" data-en="All Pro features">كل مميزات الاحترافي</span></li>
+            <li><span class="ok">✓</span><span data-ar="حسابات متعددة للفريق" data-en="Multiple team accounts">حسابات متعددة للفريق</span></li>
+            <li><span class="ok">✓</span><span data-ar="قوالب متعددة للتقارير" data-en="Multiple report templates">قوالب متعددة للتقارير</span></li>
+            <li><span class="ok">✓</span><span data-ar="تصدير Excel + PDF" data-en="Export Excel + PDF">تصدير Excel + PDF</span></li>
+            <li><span class="ok">✓</span><span data-ar="دعم فني مخصص" data-en="Dedicated support">دعم فني مخصص</span></li>
+          </ul>
+          <button class="price-btn price-btn-outline" onclick="openApp()" data-ar="تواصل معنا" data-en="Contact Us">تواصل معنا</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TESTIMONIALS -->
+  <section id="testimonials" class="lp-section fade-in">
+    <div class="lp-container">
+      <div class="text-center">
+        <div class="sec-label" data-ar="آراء العملاء" data-en="Testimonials">آراء العملاء</div>
+        <h2 class="sec-h2" data-ar="ماذا يقول مستخدمونا" data-en="What Our Users Say">ماذا يقول مستخدمونا</h2>
+      </div>
+      <div class="review-grid">
+        <div class="review-card fade-in">
+          <div class="stars">★★★★★</div>
+          <p class="review-text" data-ar="وفّر علينا ساعات من العمل اليدوي. التقرير بيطلع احترافي جداً وفيه لوجو الشركة — عملاؤنا انبهروا." data-en="Saved us hours of manual work. The report comes out very professional with the company logo — our clients were amazed.">وفّر علينا ساعات من العمل اليدوي. التقرير بيطلع احترافي جداً وفيه لوجو الشركة — عملاؤنا انبهروا.</p>
+          <div class="reviewer"><div class="rev-av">أح</div><div><div class="rev-name">أحمد حسن</div><div class="rev-role" data-ar="مدير موارد بشرية — القاهرة" data-en="HR Manager — Cairo">مدير موارد بشرية — القاهرة</div></div></div>
+        </div>
+        <div class="review-card fade-in">
+          <div class="stars">★★★★★</div>
+          <p class="review-text" data-ar="بعد ما جربت عشرين برنامج، ده أول برنامج يدعم العربية صح في الـ PDF. مش صدقت لما شفت النتيجة." data-en="After trying 20 programs, this is the first that properly supports Arabic in PDF. I couldn't believe the result.">بعد ما جربت عشرين برنامج، ده أول برنامج يدعم العربية صح في الـ PDF. مش صدقت لما شفت النتيجة.</p>
+          <div class="reviewer"><div class="rev-av">سم</div><div><div class="rev-name">سارة محمد</div><div class="rev-role" data-ar="محاسبة — الرياض" data-en="Accountant — Riyadh">محاسبة — الرياض</div></div></div>
+        </div>
+        <div class="review-card fade-in">
+          <div class="stars">★★★★★</div>
+          <p class="review-text" data-ar="ميزة كشف الراتب الفردي رائعة! كل موظف عنده ورقته الخاصة — تسلّم لكل واحد مباشرة بشكل احترافي." data-en="The individual pay slip feature is amazing! Each employee has their own sheet — delivered to each one directly and professionally.">ميزة كشف الراتب الفردي رائعة! كل موظف عنده ورقته الخاصة — تسلّم لكل واحد مباشرة بشكل احترافي.</p>
+          <div class="reviewer"><div class="rev-av">مع</div><div><div class="rev-name">محمد العمر</div><div class="rev-role" data-ar="مدير مالي — دبي" data-en="Finance Manager — Dubai">مدير مالي — دبي</div></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="lp-section fade-in">
+    <div class="lp-container">
+      <div class="cta-box">
+        <div class="sec-label" style="justify-content:center;display:flex" data-ar="ابدأ الآن" data-en="Get Started">ابدأ الآن</div>
+        <h2 class="sec-h2" data-ar="جاهز تجرب؟" data-en="Ready to Try?">جاهز تجرب؟</h2>
+        <p style="color:var(--muted);font-size:16px;margin-bottom:36px;line-height:1.8" data-ar="أنشئ حساباً مجانياً الآن وولّد أول تقرير رواتب في أقل من دقيقة" data-en="Create a free account now and generate your first payroll report in under a minute">أنشئ حساباً مجانياً الآن وولّد أول تقرير رواتب في أقل من دقيقة</p>
+        <button class="btn-hero-primary" style="font-size:18px;padding:18px 52px" onclick="openApp()" data-ar="🚀 ابدأ مجاناً" data-en="🚀 Start Free">🚀 ابدأ مجاناً</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="lp-footer">
+    <div class="footer-inner">
+      <div class="footer-brand" onclick="scrollToTop()">
+        <div class="lp-logo-icon" style="width:32px;height:32px;font-size:16px">📊</div>
+        <span class="lp-logo-text" style="font-size:16px">Payroll<span>Pro</span></span>
+      </div>
+      <p class="footer-copy" data-ar="صُنع بـ ❤️ لكل مدير رواتب عربي" data-en="Made with ❤️ for every Arabic payroll manager">صُنع بـ ❤️ لكل مدير رواتب عربي</p>
+      <div class="footer-links">
+        <a href="#features" data-ar="المميزات" data-en="Features">المميزات</a>
+        <a href="#pricing" data-ar="الأسعار" data-en="Pricing">الأسعار</a>
+        <a href="#" onclick="openApp();return false" data-ar="تسجيل الدخول" data-en="Sign In">تسجيل الدخول</a>
+      </div>
+    </div>
+  </footer>
+
+</div><!-- /landing -->
+
+
+<!-- ================================================================
+     APP ROOT
+================================================================ -->
+<div id="app-root">
+
+  <!-- AUTH SCREEN -->
+  <div id="auth-screen">
+    <div class="auth-box">
+      <div class="auth-logo">
+        <div class="auth-logo-icon">📊</div>
+        <h1>PayrollPro</h1>
+        <p data-ar="نظام الرواتب الذكي" data-en="The Smart Payroll System">نظام الرواتب الذكي</p>
+      </div>
+      <div class="auth-tabs">
+        <div class="auth-tab active" onclick="switchAuthTab('login')" data-ar="تسجيل الدخول" data-en="Sign In">تسجيل الدخول</div>
+        <div class="auth-tab" onclick="switchAuthTab('register')" data-ar="حساب جديد" data-en="New Account">حساب جديد</div>
+      </div>
+      <!-- LOGIN -->
+      <div id="login-form">
+        <div class="field"><label class="fl" data-ar="اسم المستخدم" data-en="Username">اسم المستخدم</label><input class="inp" type="text" id="login-user" placeholder="أدخل اسم المستخدم"></div>
+        <div class="field"><label class="fl" data-ar="كلمة المرور" data-en="Password">كلمة المرور</label><input class="inp" type="password" id="login-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
+        <button class="btn btn-primary btn-full" style="margin-top:8px" onclick="doLogin()" data-ar="دخول ←" data-en="Sign In →">دخول ←</button>
+        <div id="login-msg" class="auth-msg"></div>
+      </div>
+      <!-- REGISTER -->
+      <div id="register-form" style="display:none">
+        <div class="field"><label class="fl" data-ar="اسم المستخدم" data-en="Username">اسم المستخدم</label><input class="inp" type="text" id="reg-user" placeholder="اختر اسم مستخدم فريد"></div>
+        <div class="field"><label class="fl" data-ar="البريد الإلكتروني" data-en="Email">البريد الإلكتروني</label><input class="inp" type="email" id="reg-email" placeholder="example@mail.com"></div>
+        <div class="field"><label class="fl" data-ar="كلمة المرور" data-en="Password">كلمة المرور</label><input class="inp" type="password" id="reg-pass" placeholder="6 أحرف على الأقل"></div>
+        <div class="field"><label class="fl" data-ar="تأكيد كلمة المرور" data-en="Confirm Password">تأكيد كلمة المرور</label><input class="inp" type="password" id="reg-pass2" placeholder="أعد كتابة كلمة المرور" onkeydown="if(event.key==='Enter')doRegister()"></div>
+        <button class="btn btn-primary btn-full" style="margin-top:8px" onclick="doRegister()" data-ar="إنشاء الحساب" data-en="Create Account">إنشاء الحساب</button>
+        <div id="reg-msg" class="auth-msg"></div>
+      </div>
+      <p style="text-align:center;margin-top:18px;font-size:12px;color:var(--muted)">
+        <a href="#" onclick="closeApp();return false" style="color:var(--accent2);text-decoration:none" data-ar="← العودة للصفحة الرئيسية" data-en="← Back to Home">← العودة للصفحة الرئيسية</a>
+      </p>
+    </div>
+  </div>
+
+  <!-- MAIN APP -->
+  <div id="main-app" style="display:none;min-height:100vh;display:none;flex-direction:column">
+
+    <!-- TOP NAV -->
+    <nav class="app-nav">
+      <div class="app-logo" onclick="closeApp()">
+        <div class="app-logo-icon">📊</div>
+        <div class="app-logo-text">Payroll<span>Pro</span></div>
+      </div>
+      <div class="app-nav-right">
+        <div class="app-user-badge">
+          <div class="app-user-av" id="nav-av"></div>
+          <span class="app-user-name" id="nav-username"></span>
+        </div>
+        <button class="btn-logout" onclick="doLogout()" data-ar="خروج" data-en="Logout">خروج</button>
+      </div>
+    </nav>
+
+    <!-- BODY -->
+    <div class="app-body">
+      <!-- SIDEBAR -->
+      <aside class="sidebar">
+        <div class="sidebar-section-label" data-ar="الرئيسية" data-en="Main">الرئيسية</div>
+        <div class="sidebar-item active" onclick="showPage('payroll')" data-page="payroll"><span class="sico">📊</span><span data-ar="كشف الرواتب" data-en="Payroll">كشف الرواتب</span></div>
+        <div class="sidebar-section-label" data-ar="الإعدادات" data-en="Settings">الإعدادات</div>
+        <div class="sidebar-item" onclick="showPage('company')" data-page="company"><span class="sico">🏢</span><span data-ar="الشركة" data-en="Company">الشركة</span></div>
+        <div class="sidebar-item" onclick="showPage('pdf-settings')" data-page="pdf-settings"><span class="sico">🎨</span><span data-ar="تصميم PDF" data-en="PDF Design">تصميم PDF</span></div>
+        <div class="sidebar-section-label" data-ar="السجلات" data-en="History">السجلات</div>
+        <div class="sidebar-item" onclick="showPage('reports')" data-page="reports"><span class="sico">📁</span><span data-ar="التقارير" data-en="Reports">التقارير</span></div>
+      </aside>
+
+      <!-- MAIN CONTENT -->
+      <main class="app-main">
+
+        <!-- ===== PAGE: PAYROLL ===== -->
+        <div id="page-payroll" class="page active">
+          <div class="page-header">
+            <div>
+              <div class="page-title" data-ar="📊 كشف الرواتب" data-en="📊 Payroll Sheet">📊 كشف الرواتب</div>
+              <div class="page-sub" data-ar="ارفع ملف البيانات وولّد تقرير PDF احترافي" data-en="Upload your data file and generate a professional PDF report">ارفع ملف البيانات وولّد تقرير PDF احترافي</div>
+            </div>
+          </div>
+
+          <!-- STEP BAR -->
+          <div class="step-bar">
+            <div class="step-node active" id="sn1">
+              <div class="step-circle" id="sc1">1</div>
+              <span data-ar="رفع الملف" data-en="Upload File">رفع الملف</span>
+            </div>
+            <div class="step-line" id="sl1"></div>
+            <div class="step-node" id="sn2">
+              <div class="step-circle" id="sc2">2</div>
+              <span data-ar="مطابقة الأعمدة" data-en="Map Columns">مطابقة الأعمدة</span>
+            </div>
+            <div class="step-line" id="sl2"></div>
+            <div class="step-node" id="sn3">
+              <div class="step-circle" id="sc3">3</div>
+              <span data-ar="معاينة وتوليد" data-en="Preview & Generate">معاينة وتوليد</span>
+            </div>
+          </div>
+
+          <!-- STEP 1: UPLOAD -->
+          <div id="p-upload">
+            <div class="card">
+              <div class="card-title" data-ar="📂 رفع ملف البيانات" data-en="📂 Upload Data File">📂 رفع ملف البيانات</div>
+              <div class="upload-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+                <span class="upload-icon">📄</span>
+                <h3 data-ar="اسحب الملف هنا أو اضغط للاختيار" data-en="Drag file here or click to choose">اسحب الملف هنا أو اضغط للاختيار</h3>
+                <p data-ar="يدعم Excel (.xlsx, .xls) و CSV" data-en="Supports Excel (.xlsx, .xls) and CSV">يدعم Excel (.xlsx, .xls) و CSV</p>
+                <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title" data-ar="📅 بيانات التقرير" data-en="📅 Report Data">📅 بيانات التقرير</div>
+              <div class="settings-grid">
+                <div class="field">
+                  <label class="fl" data-ar="اسم الشركة" data-en="Company Name">اسم الشركة</label>
+                  <input type="text" class="inp" id="companyName" placeholder="اسم الشركة">
+                </div>
+                <div class="field">
+                  <label class="fl" data-ar="الشهر" data-en="Month">الشهر</label>
+                  <input type="month" class="inp" id="reportMonth">
+                </div>
+                <div class="field">
+                  <label class="fl" data-ar="العملة" data-en="Currency">العملة</label>
+                  <select class="inp" id="currency">
+                    <option value="ج.م">ج.م (جنيه مصري)</option>
+                    <option value="ر.س">ر.س (ريال سعودي)</option>
+                    <option value="د.إ">د.إ (درهم إماراتي)</option>
+                    <option value="USD">USD</option>
+                    <option value="EUR">EUR</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- STEP 2: MAPPING -->
+          <div id="p-mapping" style="display:none">
+            <div class="card">
+              <div class="card-title" data-ar="🗂️ مطابقة الأعمدة" data-en="🗂️ Column Mapping">🗂️ مطابقة الأعمدة</div>
+              <div id="colMapGrid" class="col-map-grid"></div>
+            </div>
+            <div class="card">
+              <div class="card-title" data-ar="⚙️ قواعد الخصم والمكافآت" data-en="⚙️ Deduction & Bonus Rules">⚙️ قواعد الخصم والمكافآت</div>
+              <div class="rules-grid">
+                <div class="rule-card">
+                  <label data-ar="نسبة خصم التأخير" data-en="Late Deduction %">نسبة خصم التأخير</label>
+                  <input type="number" class="inp" id="lateRate" value="50" min="0" max="100">
+                  <div class="rc-desc" data-ar="% من اليومية / يوم تأخير" data-en="% of daily / late day">% من اليومية / يوم تأخير</div>
+                </div>
+                <div class="rule-card">
+                  <label data-ar="نسبة خصم الغياب" data-en="Absent Deduction %">نسبة خصم الغياب</label>
+                  <input type="number" class="inp" id="absentRate" value="100" min="0" max="200">
+                  <div class="rc-desc" data-ar="% من اليومية / يوم غياب" data-en="% of daily / absent day">% من اليومية / يوم غياب</div>
+                </div>
+                <div class="rule-card">
+                  <label data-ar="أيام العمل في الشهر" data-en="Work Days Per Month">أيام العمل في الشهر</label>
+                  <input type="number" class="inp" id="workDays" value="26" min="20" max="31">
+                  <div class="rc-desc" data-ar="لحساب اليومية" data-en="For daily rate calculation">لحساب اليومية</div>
+                </div>
+              </div>
+              <div class="actions">
+                <button class="btn btn-primary" onclick="goToPreview()" data-ar="👁️ عرض المعاينة ←" data-en="👁️ Preview →">👁️ عرض المعاينة ←</button>
+                <button class="btn btn-ghost" onclick="showStep(1)" data-ar="← رجوع" data-en="← Back">← رجوع</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- STEP 3: PREVIEW -->
+          <div id="p-preview" style="display:none">
+            <div class="card">
+              <div class="card-title" data-ar="👁️ معاينة البيانات" data-en="👁️ Data Preview">👁️ معاينة البيانات</div>
+              <div class="sum-cards" id="summaryCards"></div>
+              <div class="tbl-wrap">
+                <table class="preview-table" id="previewTable"><thead><tr></tr></thead><tbody></tbody></table>
+              </div>
+              <div id="statusBar" class="status-bar"></div>
+              <div class="actions">
+                <button class="btn btn-primary" id="generateBtn" onclick="generatePDF()" data-ar="🖨️ توليد تقرير PDF" data-en="🖨️ Generate PDF">🖨️ توليد تقرير PDF</button>
+                <button class="btn btn-ghost" onclick="showStep(2)" data-ar="← رجوع" data-en="← Back">← رجوع</button>
+                <button class="btn btn-ghost" onclick="resetAll()" data-ar="↩ ملف جديد" data-en="↩ New File">↩ ملف جديد</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== PAGE: COMPANY ===== -->
+        <div id="page-company" class="page">
+          <div class="page-header">
+            <div>
+              <div class="page-title" data-ar="🏢 إعدادات الشركة" data-en="🏢 Company Settings">🏢 إعدادات الشركة</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title" data-ar="لوجو الشركة" data-en="Company Logo">لوجو الشركة</div>
+            <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+              <div class="logo-upload-zone" style="flex:1;min-width:180px" onclick="document.getElementById('logoInput').click()">
+                <div style="font-size:36px;margin-bottom:8px">🖼️</div>
+                <p style="font-size:13px;color:var(--muted)" data-ar="اضغط لرفع لوجو الشركة | PNG, JPG — حتى 2MB" data-en="Click to upload company logo | PNG, JPG — up to 2MB">اضغط لرفع لوجو الشركة<br><small>PNG, JPG — حتى 2MB</small></p>
+                <input type="file" id="logoInput" accept="image/*" style="display:none">
+              </div>
+              <div style="text-align:center">
+                <img id="logoPreview" class="logo-preview-img" alt="">
+                <div id="logoName" style="font-size:12px;color:var(--muted);margin-top:6px"></div>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title" data-ar="بيانات الشركة" data-en="Company Info">بيانات الشركة</div>
+            <div class="settings-grid">
+              <div class="field"><label class="fl" data-ar="اسم الشركة" data-en="Company Name">اسم الشركة</label><input type="text" class="inp" id="co-name" placeholder="شركة الأفق"></div>
+              <div class="field"><label class="fl" data-ar="البريد الإلكتروني" data-en="Email">البريد الإلكتروني</label><input type="email" class="inp" id="co-email" placeholder="info@company.com"></div>
+              <div class="field"><label class="fl" data-ar="رقم الهاتف" data-en="Phone">رقم الهاتف</label><input type="text" class="inp" id="co-phone" placeholder="+20 100 000 0000"></div>
+              <div class="field"><label class="fl" data-ar="العنوان" data-en="Address">العنوان</label><input type="text" class="inp" id="co-address" placeholder="القاهرة، مصر"></div>
+              <div class="field"><label class="fl" data-ar="الموقع الإلكتروني" data-en="Website">الموقع الإلكتروني</label><input type="text" class="inp" id="co-website" placeholder="www.company.com"></div>
+              <div class="field"><label class="fl" data-ar="النشاط التجاري" data-en="Business Activity">النشاط التجاري</label><input type="text" class="inp" id="co-activity" placeholder="تطوير برمجيات"></div>
+            </div>
+            <button class="btn btn-primary" style="margin-top:6px" onclick="saveCompany()" data-ar="💾 حفظ البيانات" data-en="💾 Save Data">💾 حفظ البيانات</button>
+            <div id="co-msg" class="status-bar"></div>
+          </div>
+        </div>
+
+        <!-- ===== PAGE: PDF SETTINGS ===== -->
+        <div id="page-pdf-settings" class="page">
+          <div class="page-header">
+            <div>
+              <div class="page-title" data-ar="🎨 تخصيص تصميم PDF" data-en="🎨 PDF Design">🎨 تخصيص تصميم PDF</div>
+            </div>
+          </div>
+          <div class="pdf-settings-grid">
+            <div>
+              <!-- REPORT MODE -->
+              <div class="card">
+                <div class="card-title" data-ar="نمط التقرير" data-en="Report Mode">نمط التقرير</div>
+                <div class="mode-toggle-row">
+                  <div class="mode-card selected" id="mode-table" onclick="selectMode('table')">
+                    <div class="mc-icon">📋</div>
+                    <div class="mc-title" data-ar="جدول موحد" data-en="Unified Table">جدول موحد</div>
+                    <div class="mc-desc" data-ar="كل الموظفين في جدول واحد — الطريقة الكلاسيكية" data-en="All employees in one table — classic way">كل الموظفين في جدول واحد</div>
+                  </div>
+                  <div class="mode-card" id="mode-individual" onclick="selectMode('individual')">
+                    <div class="mc-icon">👤</div>
+                    <div class="mc-title" data-ar="كشف فردي ✨" data-en="Individual Slip ✨">كشف فردي ✨</div>
+                    <div class="mc-desc" data-ar="كل موظف في بلوك منفصل بلوجو + هيدر + بياناته" data-en="Each employee in separate block with logo + header + data">كل موظف في بلوك مستقل</div>
+                  </div>
+                </div>
+                <div id="repeat-header-opt" style="margin-top:12px">
+                  <label class="toggle-row">
+                    <input type="checkbox" id="ps-repeatHeader">
+                    <span data-ar="تكرار الهيدر + عناوين الأعمدة قبل كل موظف (في الجدول الموحد)" data-en="Repeat header + column titles before each employee (in unified table)">تكرار الهيدر + عناوين الأعمدة قبل كل موظف</span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- PAGE SETTINGS -->
+              <div class="card">
+                <div class="card-title" data-ar="إعدادات الصفحة" data-en="Page Settings">إعدادات الصفحة</div>
+                <div class="rules-grid" style="grid-template-columns:1fr 1fr">
+                  <div class="rule-card">
+                    <label data-ar="اتجاه الصفحة" data-en="Orientation">اتجاه الصفحة</label>
+                    <select class="inp" id="ps-orientation"><option value="landscape">أفقي</option><option value="portrait">رأسي</option></select>
+                  </div>
+                  <div class="rule-card">
+                    <label data-ar="حجم الورق" data-en="Paper Size">حجم الورق</label>
+                    <select class="inp" id="ps-paper"><option value="a4">A4</option><option value="a3">A3</option><option value="letter">Letter</option></select>
+                  </div>
+                  <div class="rule-card">
+                    <label data-ar="حجم الخط" data-en="Font Size">حجم الخط</label>
+                    <input type="number" class="inp" id="ps-fontSize" value="10" min="7" max="16">
+                  </div>
+                  <div class="rule-card">
+                    <label data-ar="خط العناوين" data-en="Header Font">خط العناوين</label>
+                    <input type="number" class="inp" id="ps-headerFontSize" value="12" min="9" max="18">
+                  </div>
+                  <div class="rule-card">
+                    <label data-ar="ارتفاع الصف (mm)" data-en="Row Height (mm)">ارتفاع الصف</label>
+                    <input type="number" class="inp" id="ps-rowHeight" value="10" min="6" max="20">
+                  </div>
+                </div>
+              </div>
+
+              <!-- COLORS -->
+              <div class="card">
+                <div class="card-title" data-ar="ألوان التقرير" data-en="Report Colors">ألوان التقرير</div>
+                <div style="display:flex;flex-direction:column;gap:12px">
+                  <div><label class="fl" data-ar="خلفية رأس الجدول" data-en="Header Background">خلفية رأس الجدول</label><div class="color-row"><input type="color" id="ps-headerBg" value="#1e3450"><input type="text" class="inp" id="ps-headerBgTxt" value="#1e3450"></div></div>
+                  <div><label class="fl" data-ar="لون نص العناوين" data-en="Header Text Color">لون نص العناوين</label><div class="color-row"><input type="color" id="ps-headerColor" value="#7ecfad"><input type="text" class="inp" id="ps-headerColorTxt" value="#7ecfad"></div></div>
+                  <div><label class="fl" data-ar="خلفية الصفوف" data-en="Row Background">خلفية الصفوف</label><div class="color-row"><input type="color" id="ps-rowBg" value="#162336"><input type="text" class="inp" id="ps-rowBgTxt" value="#162336"></div></div>
+                  <div><label class="fl" data-ar="خلفية الصفوف المتناوبة" data-en="Alt Row Background">خلفية الصفوف المتناوبة</label><div class="color-row"><input type="color" id="ps-altRowBg" value="#0f1923"><input type="text" class="inp" id="ps-altRowBgTxt" value="#0f1923"></div></div>
+                  <div><label class="fl" data-ar="لون النصوص" data-en="Text Color">لون النصوص</label><div class="color-row"><input type="color" id="ps-textColor" value="#c5dff0"><input type="text" class="inp" id="ps-textColorTxt" value="#c5dff0"></div></div>
+                  <div><label class="fl" data-ar="لون التمييز" data-en="Accent Color">لون التمييز</label><div class="color-row"><input type="color" id="ps-accentColor" value="#40916c"><input type="text" class="inp" id="ps-accentColorTxt" value="#40916c"></div></div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <!-- COLUMN ORDER -->
+              <div class="card">
+                <div class="card-title" data-ar="ترتيب الأعمدة وعرضها" data-en="Column Order & Width">ترتيب الأعمدة وعرضها</div>
+                <p style="font-size:12px;color:var(--muted);margin-bottom:12px" data-ar="اسحب لإعادة الترتيب — غيّر التسمية والعرض وأخفِ أي عمود" data-en="Drag to reorder — change label, width, and hide any column">اسحب لإعادة الترتيب — غيّر التسمية والعرض وأخفِ أي عمود</p>
+                <div class="col-order-list" id="colOrderList"></div>
+              </div>
+
+              <!-- EXTRA OPTIONS -->
+              <div class="card">
+                <div class="card-title" data-ar="خيارات إضافية" data-en="Extra Options">خيارات إضافية</div>
+                <div style="display:flex;flex-direction:column;gap:4px">
+                  <label class="toggle-row">
+                    <input type="checkbox" id="ps-showLogo" checked>
+                    <span data-ar="عرض لوجو الشركة في التقرير" data-en="Show company logo in report">عرض لوجو الشركة في التقرير</span>
+                  </label>
+                  <label class="toggle-row">
+                    <input type="checkbox" id="ps-showSummary" checked>
+                    <span data-ar="عرض صندوق الملخص" data-en="Show summary box">عرض صندوق الملخص</span>
+                  </label>
+                </div>
+                <button class="btn btn-primary btn-full" style="margin-top:16px" onclick="savePdfSettings()" data-ar="💾 حفظ الإعدادات" data-en="💾 Save Settings">💾 حفظ الإعدادات</button>
+                <button class="btn btn-ghost btn-full" style="margin-top:8px" onclick="resetPdfSettings()" data-ar="↩ استعادة الافتراضي" data-en="↩ Reset to Default">↩ استعادة الافتراضي</button>
+                <div id="ps-msg" class="status-bar"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== PAGE: REPORTS ===== -->
+        <div id="page-reports" class="page">
+          <div class="page-header">
+            <div>
+              <div class="page-title" data-ar="📁 سجل التقارير" data-en="📁 Reports History">📁 سجل التقارير</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title" data-ar="التقارير المحفوظة" data-en="Saved Reports">التقارير المحفوظة</div>
+            <div id="reports-list"></div>
+          </div>
+        </div>
+
+      </main>
+    </div><!-- /app-body -->
+  </div><!-- /main-app -->
+</div><!-- /app-root -->
+
+
+<!-- PDF HIDDEN RENDER TEMPLATE -->
+<div id="pdf-template" style="position:fixed;left:-9999px;top:0;width:1122px;background:#0d2137;color:#e8edf2;font-family:'Segoe UI',Tahoma,Arial,sans-serif;direction:rtl;padding:0">
+  <div id="pdf-inner"></div>
+</div>
+
+<script>
+// ================================================================
+//  GLOBALS
+// ================================================================
+const { jsPDF } = window.jspdf;
+let currentUser = null;
+let rawData = [], fileColumns = [];
+let currentStep = 1;
+let pdfSettings = null;
+let companyData = null;
+let currentLang = 'ar';
+
+// ================================================================
+//  LANGUAGE
+// ================================================================
+function toggleLang() {
+  currentLang = currentLang === 'ar' ? 'en' : 'ar';
+  const isAr = currentLang === 'ar';
+  document.documentElement.lang = currentLang;
+  document.documentElement.dir = isAr ? 'rtl' : 'ltr';
+  document.getElementById('lang-btn').textContent = isAr ? '🌐 English' : '🌐 العربية';
+  document.querySelectorAll('[data-ar]').forEach(el => {
+    const txt = isAr ? el.dataset.ar : el.dataset.en;
+    if (txt) el.textContent = txt;
+  });
+}
+
+// ================================================================
+//  INIT
+// ================================================================
+window.addEventListener('DOMContentLoaded', async () => {
+  await DB.open();
+  const saved = sessionStorage.getItem('ppUser');
+  if (saved) {
+    currentUser = JSON.parse(saved);
+  }
+  const now = new Date();
+  document.getElementById('reportMonth').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  initColorSync();
+  initColOrderList();
+  setupDragDrop();
+  initScrollEffects();
+
+  // Nav scroll effect
+  window.addEventListener('scroll', () => {
+    document.getElementById('lp-nav').classList.toggle('scrolled', window.scrollY > 40);
+  });
+});
+
+// ================================================================
+//  LANDING / APP ROUTING
+// ================================================================
+function openApp() {
+  document.getElementById('landing').style.display = 'none';
+  document.getElementById('app-root').style.display = 'block';
+  if (currentUser) {
+    showMainApp();
+  }
+}
+function closeApp() {
+  document.getElementById('landing').style.display = 'block';
+  document.getElementById('app-root').style.display = 'none';
+}
+function scrollToTop() {
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function initScrollEffects() {
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+  }, {threshold:.12});
+  document.querySelectorAll('.fade-in').forEach(el => obs.observe(el));
+}
+
+// ================================================================
+//  AUTH
+// ================================================================
+function switchAuthTab(tab) {
+  document.querySelectorAll('.auth-tab').forEach((t,i) => t.classList.toggle('active', (tab==='login'&&i===0)||(tab==='register'&&i===1)));
+  document.getElementById('login-form').style.display    = tab==='login'    ? 'block' : 'none';
+  document.getElementById('register-form').style.display = tab==='register' ? 'block' : 'none';
+}
+async function doLogin() {
+  const u = document.getElementById('login-user').value.trim();
+  const p = document.getElementById('login-pass').value;
+  if (!u || !p) return setAuthMsg('login-msg','error','يرجى ملء جميع الحقول');
+  const res = await DB.login(u, p);
+  if (!res.ok) return setAuthMsg('login-msg','error', res.error);
+  currentUser = res.user;
+  sessionStorage.setItem('ppUser', JSON.stringify(currentUser));
+  showMainApp();
+}
+async function doRegister() {
+  const u  = document.getElementById('reg-user').value.trim();
+  const e  = document.getElementById('reg-email').value.trim();
+  const p  = document.getElementById('reg-pass').value;
+  const p2 = document.getElementById('reg-pass2').value;
+  if (!u||!e||!p||!p2) return setAuthMsg('reg-msg','error','يرجى ملء جميع الحقول');
+  if (p !== p2) return setAuthMsg('reg-msg','error','كلمتا المرور غير متطابقتان');
+  if (p.length < 6) return setAuthMsg('reg-msg','error','كلمة المرور قصيرة — 6 أحرف على الأقل');
+  const res = await DB.register(u, p, e);
+  if (!res.ok) return setAuthMsg('reg-msg','error', res.error);
+  setAuthMsg('reg-msg','success','✅ تم إنشاء الحساب — جاري الدخول...');
+  setTimeout(() => { currentUser = res.user; sessionStorage.setItem('ppUser', JSON.stringify(currentUser)); showMainApp(); }, 900);
+}
+function setAuthMsg(id, type, msg) {
+  const el = document.getElementById(id);
+  el.className = 'auth-msg ' + type;
+  el.textContent = msg;
+}
+async function showMainApp() {
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('main-app').style.display    = 'flex';
+  document.getElementById('nav-username').textContent  = currentUser.username;
+  document.getElementById('nav-av').textContent        = currentUser.username[0].toUpperCase();
+  companyData  = await DB.getCompany(currentUser.id) || {};
+  pdfSettings  = await DB.getPdfSettings(currentUser.id);
+  if (companyData.name) document.getElementById('companyName').value = companyData.name;
+  loadCompanyPage();
+  loadPdfSettingsPage();
+}
+function doLogout() {
+  sessionStorage.removeItem('ppUser');
+  currentUser = null; rawData = []; fileColumns = [];
+  document.getElementById('auth-screen').style.display = 'flex';
+  document.getElementById('main-app').style.display    = 'none';
+  resetAll();
+}
+
+// ================================================================
+//  NAVIGATION
+// ================================================================
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  const si = document.querySelector(`[data-page="${name}"]`);
+  if (si) si.classList.add('active');
+  if (name === 'reports') loadReports();
+}
+
+// ================================================================
+//  FILE HANDLING
+// ================================================================
+function setupDragDrop() {
+  const dz = document.getElementById('dropZone');
+  dz.addEventListener('dragover',  e => { e.preventDefault(); dz.classList.add('dragging'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('dragging'));
+  dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('dragging'); handleFile(e.dataTransfer.files[0]); });
+  document.getElementById('fileInput').addEventListener('change', e => handleFile(e.target.files[0]));
+}
+function handleFile(file) {
+  if (!file) return;
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (['xlsx','xls'].includes(ext)) readExcel(file);
+  else if (ext==='csv') readCSV(file);
+  else showStatus('error','❌ نوع الملف غير مدعوم');
+}
+function readExcel(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data8 = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data8, {type:'array',cellText:true,cellDates:false,raw:false,dense:false});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const aoa = XLSX.utils.sheet_to_json(ws, {header:1,defval:'',blankrows:false});
+      if (!aoa||aoa.length<2) return showStatus('error','❌ الملف فارغ أو لا يحتوي على بيانات');
+      const headers = aoa[0].map(h => (h===null||h===undefined)?'':String(h).trim());
+      const validHeaders = headers.filter(h=>h!=='');
+      if (!validHeaders.length) return showStatus('error','❌ لم يتم العثور على عناوين الأعمدة');
+      const data = [];
+      for (let i=1;i<aoa.length;i++) {
+        const row=aoa[i];
+        if (!row||row.every(c=>c===''||c===null||c===undefined)) continue;
+        const obj={};
+        headers.forEach((h,idx)=>{ if(h==='') return; const cell=row[idx]; obj[h]=(cell===null||cell===undefined)?'':cell; });
+        data.push(obj);
+      }
+      if (!data.length) return showStatus('error','❌ الملف لا يحتوي على صفوف');
+      fileColumns=validHeaders; rawData=data; showStep(2);
+    } catch(err) { showStatus('error','❌ خطأ في قراءة الملف: '+err.message); }
+  };
+  reader.readAsArrayBuffer(file);
+}
+function readCSV(file) {
+  Papa.parse(file,{header:true,skipEmptyLines:true,encoding:'UTF-8',
+    complete:r=>{
+      if (!r.data.length) return showStatus('error','❌ الملف فارغ');
+      const fields=r.meta.fields.map(f=>String(f).trim()).filter(f=>f);
+      const data=r.data.map(row=>{const obj={};r.meta.fields.forEach(orig=>{const c=String(orig).trim();if(c)obj[c]=row[orig]??'';});return obj;});
+      fileColumns=fields; rawData=data; showStep(2);
+    }
+  });
+}
+
+// ================================================================
+//  STEPS
+// ================================================================
+function showStep(n) {
+  currentStep = n;
+  document.getElementById('p-upload').style.display  = n===1?'block':'none';
+  document.getElementById('p-mapping').style.display = n===2?'block':'none';
+  document.getElementById('p-preview').style.display = n===3?'block':'none';
+  [1,2,3].forEach(i => {
+    const sn=document.getElementById('sn'+i);
+    const sl=document.getElementById('sl'+i);
+    if (i<n) { sn.className='step-node done'; if(sl) sl.className='step-line done'; }
+    else if (i===n) { sn.className='step-node active'; if(sl) sl.className='step-line'; }
+    else { sn.className='step-node'; if(sl) sl.className='step-line'; }
+  });
+  if (n===2) buildMappingUI();
+  if (n===3) buildPreview();
+}
+function resetAll() {
+  rawData=[]; fileColumns=[];
+  const fi=document.getElementById('fileInput');
+  if (fi) fi.value='';
+  showStep(1);
+}
+
+// ================================================================
+//  COLUMN MAPPING
+// ================================================================
+const HINTS = {
+  name:   ['اسم الموظف','اسم','الاسم','الموظف','موظف','name','employee','emp','staff'],
+  salary: ['الراتب الأساسي','الراتب','راتب','أساسي','salary','base','basic','gross'],
+  late:   ['أيام التأخير','تأخير','تأخر','late','lateDays','delay'],
+  absent: ['أيام الغياب','غياب','absent','absence','absentDays','leave'],
+  bonus:  ['مكافأة','مكافآت','مكافئة','حافز','علاوة','bonus','incentive','reward']
+};
+function guessCol(field) {
+  const hints = HINTS[field]||[];
+  for (const col of fileColumns) for (const h of hints) if (col.trim()===h) return col;
+  for (const col of fileColumns) for (const h of hints) if (col.toLowerCase().includes(h.toLowerCase())||col.includes(h)) return col;
+  return '';
+}
+function buildMappingUI() {
+  const fields = [
+    {id:'mapName',  l:'اسم الموظف *',     key:'name'},
+    {id:'mapSalary',l:'الراتب الأساسي *', key:'salary'},
+    {id:'mapLate',  l:'أيام التأخير',     key:'late'},
+    {id:'mapAbsent',l:'أيام الغياب',      key:'absent'},
+    {id:'mapBonus', l:'المكافآت',         key:'bonus'}
+  ];
+  const colBadges = fileColumns.map(c=>`<span style="background:var(--bg4);border:1px solid var(--border2);border-radius:6px;padding:3px 10px;font-size:12px;color:var(--accent2)">${c}</span>`).join('');
+  const colsInfo = `<div style="margin-bottom:16px"><div style="font-size:12px;color:var(--muted);margin-bottom:8px">📋 الأعمدة المكتشفة (${fileColumns.length} عمود):</div><div style="display:flex;flex-wrap:wrap;gap:6px">${colBadges}</div></div>`;
+  document.getElementById('colMapGrid').innerHTML = colsInfo + fields.map(f => {
+    const g = guessCol(f.key);
+    const opts = ['<option value="">-- غير موجود --</option>', ...fileColumns.map(c=>`<option value="${c}" ${c===g?'selected':''}>${c}</option>`)].join('');
+    return `<div class="col-map-item"><label>${f.l}</label><select class="inp" id="${f.id}">${opts}</select></div>`;
+  }).join('');
+}
+function getMap() {
+  return {
+    name:document.getElementById('mapName')?.value||'',
+    salary:document.getElementById('mapSalary')?.value||'',
+    late:document.getElementById('mapLate')?.value||'',
+    absent:document.getElementById('mapAbsent')?.value||'',
+    bonus:document.getElementById('mapBonus')?.value||''
+  };
+}
+function goToPreview() {
+  const m = getMap();
+  if (!m.name)   return alert('⚠️ يرجى تحديد عمود اسم الموظف');
+  if (!m.salary) return alert('⚠️ يرجى تحديد عمود الراتب الأساسي');
+  showStep(3);
+}
+
+// ================================================================
+//  CALCULATIONS
+// ================================================================
+function parseNum(val) {
+  if (val===null||val===undefined||val==='') return 0;
+  if (typeof val==='number') return val;
+  const s = String(val)
+    .replace(/[٠١٢٣٤٥٦٧٨٩]/g, d=>d.charCodeAt(0)-1632)
+    .replace(/[۰۱۲۳۴۵۶۷۸۹]/g, d=>d.charCodeAt(0)-1776)
+    .replace(/,/g,'').replace(/\s/g,'').trim();
+  const n = parseFloat(s);
+  return isNaN(n)?0:n;
+}
+function calcEmp(row) {
+  const map=getMap();
+  const lr=parseFloat(document.getElementById('lateRate').value)/100;
+  const ar=parseFloat(document.getElementById('absentRate').value)/100;
+  const wd=parseFloat(document.getElementById('workDays').value)||26;
+  const name   = String(row[map.name]||'').trim();
+  const base   = parseNum(row[map.salary]);
+  const late   = parseNum(row[map.late]);
+  const absent = parseNum(row[map.absent]);
+  const bonus  = parseNum(row[map.bonus]);
+  const daily  = base / wd;
+  const lateD  = Math.round(daily * lr * late * 100) / 100;
+  const absD   = Math.round(daily * ar * absent * 100) / 100;
+  const net    = Math.max(0, base - lateD - absD + bonus);
+  return { name, base, late, absent, bonus, lateD, absD, net };
+}
+function fmt(n) {
+  return n.toLocaleString('ar-EG',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+
+// ================================================================
+//  PREVIEW
+// ================================================================
+function buildPreview() {
+  const emps = rawData.map(r=>calcEmp(r)).filter(e=>e.name);
+  const tBase=emps.reduce((s,e)=>s+e.base,0), tDed=emps.reduce((s,e)=>s+e.lateD+e.absD,0);
+  const tBon=emps.reduce((s,e)=>s+e.bonus,0), tNet=emps.reduce((s,e)=>s+e.net,0);
+  const cur = document.getElementById('currency').value;
+
+  document.getElementById('summaryCards').innerHTML = [
+    {lbl:'الموظفين',        val:emps.length,              cls:'blue'},
+    {lbl:'إجمالي الرواتب', val:`${fmt(tBase)} ${cur}`,   cls:'green'},
+    {lbl:'إجمالي الخصومات',val:`-${fmt(tDed)} ${cur}`,   cls:'red'},
+    {lbl:'صافي المدفوعات', val:`${fmt(tNet)} ${cur}`,     cls:'amber'},
+  ].map(s=>`<div class="sum-card ${s.cls}"><div class="sv">${s.val}</div><div class="sl">${s.lbl}</div></div>`).join('');
+
+  const thead = document.querySelector('#previewTable thead tr');
+  const tbody = document.querySelector('#previewTable tbody');
+  thead.innerHTML = ['#','اسم الموظف','الراتب الأساسي','أيام التأخير','خصم التأخير','أيام الغياب','خصم الغياب','المكافأة','الراتب الصافي']
+    .map(h=>`<th>${h}</th>`).join('');
+  tbody.innerHTML = emps.map((e,i)=>`<tr>
+    <td>${i+1}</td>
+    <td style="font-weight:700;color:var(--text)">${e.name}</td>
+    <td>${fmt(e.base)}</td>
+    <td>${e.late||'-'}</td>
+    <td>${e.lateD>0?`<span class="badge badge-red">-${fmt(e.lateD)}</span>`:'-'}</td>
+    <td>${e.absent||'-'}</td>
+    <td>${e.absD>0?`<span class="badge badge-red">-${fmt(e.absD)}</span>`:'-'}</td>
+    <td>${e.bonus>0?`<span class="badge badge-green">+${fmt(e.bonus)}</span>`:'-'}</td>
+    <td style="font-weight:700;color:var(--green-light)">${fmt(e.net)} ${cur}</td>
+  </tr>`).join('');
+}
+
+// ================================================================
+//  PDF GENERATION
+// ================================================================
+async function generatePDF() {
+  const btn = document.getElementById('generateBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ جاري التوليد...';
+  showStatus('info','⏳ جاري معالجة البيانات...');
+
+  try {
+    const ps = pdfSettings || DB.getDefaultPdfSettings();
+    const co = companyData || {};
+    const cur = document.getElementById('currency').value;
+    const monthRaw = document.getElementById('reportMonth').value;
+    const monthLabel = monthRaw ? new Date(monthRaw+'-01').toLocaleDateString('ar-EG',{year:'numeric',month:'long'}) : '';
+    const emps = rawData.map(r=>calcEmp(r)).filter(e=>e.name);
+    const tBase=emps.reduce((s,e)=>s+e.base,0);
+    const tDed=emps.reduce((s,e)=>s+e.lateD+e.absD,0);
+    const tBon=emps.reduce((s,e)=>s+e.bonus,0);
+    const tNet=emps.reduce((s,e)=>s+e.net,0);
+
+    const coName = co.name || document.getElementById('companyName').value || 'الشركة';
+    const logoSrc = (ps.showLogo && co.logoDataUrl) ? co.logoDataUrl : null;
+    const mode = ps.reportMode || 'table';
+    const repeatHeader = ps.repeatHeaderPerEmployee === true;
+
+    // Build columns list
+    const cols = (ps.columnOrder||['num','name','base','lateDays','lateDeduct','absentDays','absentDeduct','bonus','net'])
+      .filter(c => ps.colVisibility ? ps.colVisibility[c] !== false : true);
+    const colLabels = ps.columnLabels || {};
+    const colColorMap = { lateDeduct:'#f87171', absentDeduct:'#f87171', bonus:'#4ade80' };
+    const totalW = cols.reduce((s,c)=>s+(ps.colWidths?.[c]||25),0);
+    const getColW = c => (((ps.colWidths?.[c]||25)/totalW)*100).toFixed(1)+'%';
+    const getEmpVal = (col, emp, idx) => {
+      const m = {
+        num:(_,i)=>i+1, name:e=>e.name, base:e=>`${fmt(e.base)} ${cur}`,
+        lateDays:e=>e.late||'-', lateDeduct:e=>e.lateD>0?`-${fmt(e.lateD)}`:'-',
+        absentDays:e=>e.absent||'-', absentDeduct:e=>e.absD>0?`-${fmt(e.absD)}`:'-',
+        bonus:e=>e.bonus>0?`+${fmt(e.bonus)}`:'-', net:e=>`${fmt(e.net)} ${cur}`
+      };
+      return m[col] ? m[col](emp, idx) : '-';
+    };
+
+    // --- Build HTML header snippet (reusable) ---
+    const logoHtml = logoSrc ? `<img src="${logoSrc}" style="height:50px;max-width:110px;object-fit:contain;display:block" />` : '';
+    const buildHeaderHtml = (empName='', empNum='') => `
+      <div style="padding:14px 22px;display:flex;justify-content:space-between;align-items:center;
+        background:linear-gradient(135deg,${ps.headerBg||'#1e3450'},#0d2137);
+        border-bottom:3px solid ${ps.accentColor||'#40916c'}">
+        <div style="display:flex;align-items:center;gap:14px">
+          ${logoHtml}
+          <div>
+            <div style="font-size:18px;font-weight:800;color:#fff">${coName}</div>
+            <div style="font-size:11px;color:${ps.headerColor||'#7ecfad'};margin-top:3px">كشف رواتب — ${monthLabel}</div>
+            ${empName?`<div style="font-size:12px;color:#fff;margin-top:4px;font-weight:700">👤 ${empName}</div>`:''}
+          </div>
+        </div>
+        <div style="text-align:left;font-size:10px;color:#5a7a94;line-height:1.7">
+          تاريخ الإصدار: ${new Date().toLocaleDateString('ar-EG')}<br>
+          عدد الموظفين: ${emps.length}
+          ${empNum?`<br>رقم الموظف: ${empNum}`:''}
+        </div>
+      </div>`;
+
+    const buildSummaryHtml = () => !ps.showSummary ? '' : `
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:${ps.headerBg||'#1e3450'}">
+        ${[{l:'إجمالي الموظفين',v:emps.length,c:'#60a5fa'},{l:'إجمالي الرواتب',v:`${fmt(tBase)} ${cur}`,c:'#4ade80'},
+           {l:'إجمالي الخصومات',v:`-${fmt(tDed)} ${cur}`,c:'#f87171'},{l:'صافي المدفوعات',v:`${fmt(tNet)} ${cur}`,c:'#fbbf24'}]
+          .map(s=>`<div style="background:${ps.rowBg||'#162336'};padding:10px 16px;text-align:center">
+            <div style="font-size:15px;font-weight:700;color:${s.c}">${s.v}</div>
+            <div style="font-size:10px;color:#5a7a94;margin-top:2px">${s.l}</div>
+          </div>`).join('')}
+      </div>`;
+
+    const buildColHeaderHtml = () => `
+      <table style="width:100%;border-collapse:collapse;table-layout:fixed">
+        <colgroup>${cols.map(c=>`<col style="width:${getColW(c)}">`).join('')}</colgroup>
+        <thead><tr>
+          ${cols.map(c=>`<th style="background:${ps.headerBg||'#1e3450'};color:${ps.headerColor||'#7ecfad'};
+            padding:${(ps.rowHeight||10)*0.7}px 8px;text-align:center;font-weight:700;
+            border-bottom:2px solid ${ps.accentColor||'#40916c'};white-space:nowrap;font-size:${ps.headerFontSize||12}px">
+            ${colLabels[c]||c}</th>`).join('')}
+        </tr></thead>
+      </table>`;
+
+    const buildEmpRowHtml = (emp, idx) => {
+      const bg = idx%2===0 ? (ps.rowBg||'#162336') : (ps.altRowBg||'#0f1923');
+      return `<tr>${cols.map(c=>{
+        const isName=c==='name';
+        const color=colColorMap[c]||(ps.textColor||'#c5dff0');
+        const val=getEmpVal(c,emp,idx);
+        return `<td style="background:${bg};color:${color};font-size:${ps.fontSize||10}px;
+          padding:${(ps.rowHeight||10)*0.7}px 8px;
+          ${isName?'text-align:right;font-weight:700;':'text-align:center;'}border-bottom:1px solid #1a2d42">${val}</td>`;
+      }).join('')}</tr>`;
+    };
+
+    const footerHtml = `
+      <div style="padding:7px 22px;display:flex;justify-content:space-between;
+        font-size:9px;color:#3d5a72;border-top:1px solid #1e3450">
+        <span>${coName} | ${new Date().toLocaleDateString('ar-EG')}</span>
+        <span>PayrollPro — نظام الرواتب الذكي</span>
+      </div>`;
+
+    let innerHtml = '';
+
+    if (mode === 'individual') {
+      // INDIVIDUAL SLIPS MODE: each employee gets their own block
+      innerHtml = emps.map((emp, idx) => `
+        <div style="margin-bottom:28px;border:1px solid #1e3450;border-radius:10px;overflow:hidden;background:#0f1c2e;page-break-inside:avoid">
+          ${buildHeaderHtml(emp.name, String(idx+1).padStart(3,'0'))}
+          ${buildColHeaderHtml()}
+          <table style="width:100%;border-collapse:collapse;table-layout:fixed">
+            <colgroup>${cols.map(c=>`<col style="width:${getColW(c)}">`).join('')}</colgroup>
+            <tbody>${buildEmpRowHtml(emp,0)}</tbody>
+          </table>
+          <div style="display:flex;gap:20px;padding:10px 16px;background:#1a2d42;flex-wrap:wrap">
+            ${[{l:'الراتب الأساسي',v:`${fmt(emp.base)} ${cur}`,c:'#4ade80'},
+               {l:'إجمالي الخصومات',v:`-${fmt(emp.lateD+emp.absD)} ${cur}`,c:'#f87171'},
+               {l:'المكافأة',v:`+${fmt(emp.bonus)} ${cur}`,c:'#fbbf24'},
+               {l:'الراتب الصافي',v:`${fmt(emp.net)} ${cur}`,c:'#60a5fa'}]
+              .map(s=>`<div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex:1;min-width:100px;border-right:1px solid #1e3450;padding-right:10px">
+                <div style="font-size:13px;font-weight:800;color:${s.c}">${s.v}</div>
+                <div style="font-size:9px;color:#5a7a94">${s.l}</div>
+              </div>`).join('')}
+          </div>
+        </div>`).join('');
+    } else {
+      // TABLE MODE
+      if (repeatHeader) {
+        // Each row preceded by header + col titles
+        const tableStyle = `width:100%;border-collapse:collapse;table-layout:fixed`;
+        innerHtml = `
+          <div>
+          ${buildHeaderHtml()}
+          ${buildSummaryHtml()}
+          </div>
+          ${emps.map((emp,idx)=>`
+          <div style="margin-bottom:12px;page-break-inside:avoid">
+            ${buildHeaderHtml(emp.name, String(idx+1).padStart(3,'0'))}
+            ${buildColHeaderHtml()}
+            <table style="${tableStyle}">
+              <colgroup>${cols.map(c=>`<col style="width:${getColW(c)}">`).join('')}</colgroup>
+              <tbody>${buildEmpRowHtml(emp,0)}</tbody>
+            </table>
+          </div>`).join('')}
+          ${footerHtml}`;
+      } else {
+        // Classic single table
+        innerHtml = `
+          ${buildHeaderHtml()}
+          ${buildSummaryHtml()}
+          <div style="overflow:hidden">
+            <table style="width:100%;border-collapse:collapse;table-layout:fixed">
+              <colgroup>${cols.map(c=>`<col style="width:${getColW(c)}">`).join('')}</colgroup>
+              <thead><tr>
+                ${cols.map(c=>`<th style="background:${ps.headerBg||'#1e3450'};color:${ps.headerColor||'#7ecfad'};
+                  padding:${(ps.rowHeight||10)*0.7}px 8px;text-align:center;font-weight:700;
+                  border-bottom:2px solid ${ps.accentColor||'#40916c'};white-space:nowrap;
+                  font-size:${ps.headerFontSize||12}px">${colLabels[c]||c}</th>`).join('')}
+              </tr></thead>
+              <tbody>
+                ${emps.map((e,i)=>buildEmpRowHtml(e,i)).join('')}
+                <tr>${cols.map(c=>{
+                  const totals={num:'',name:'الإجمالي',base:`${fmt(tBase)} ${cur}`,
+                    lateDeduct:`-${fmt(tDed)}`,bonus:`+${fmt(tBon)}`,net:`${fmt(tNet)} ${cur}`};
+                  const v=totals[c]!==undefined?totals[c]:'';
+                  return `<td style="background:${ps.totalRowBg||'#1a2d42'};color:#fff;font-weight:700;
+                    font-size:${ps.fontSize||10}px;padding:${(ps.rowHeight||10)*0.7}px 8px;
+                    border-top:2px solid ${ps.accentColor||'#40916c'};text-align:center">${v}</td>`;
+                }).join('')}</tr>
+              </tbody>
+            </table>
+          </div>
+          ${footerHtml}`;
+      }
+    }
+
+    // Render
+    document.getElementById('pdf-inner').innerHTML = innerHtml;
+    const tmpl = document.getElementById('pdf-template');
+    await new Promise(r => setTimeout(r, 150));
+    const canvas = await html2canvas(tmpl, {scale:2, useCORS:true, backgroundColor:'#0d2137', logging:false, width:1122});
+    const imgData = canvas.toDataURL('image/jpeg', 0.94);
+
+    const isLand = ps.orientation !== 'portrait';
+    const doc = new jsPDF({ orientation: ps.orientation||'landscape', unit:'mm', format: ps.paperSize||'a4' });
+    const pw = isLand ? 297 : 210;
+    const ph = isLand ? 210 : 297;
+    const imgH = pw * canvas.height / canvas.width;
+
+    if (imgH <= ph) {
+      doc.addImage(imgData,'JPEG',0,0,pw,imgH);
+    } else {
+      let yOff=0, pg=0;
+      const slicePx = Math.round(canvas.width*(ph/pw));
+      while (yOff < canvas.height) {
+        if (pg>0) doc.addPage();
+        const sc=document.createElement('canvas');
+        sc.width=canvas.width;
+        sc.height=Math.min(slicePx,canvas.height-yOff);
+        sc.getContext('2d').drawImage(canvas,0,yOff,canvas.width,sc.height,0,0,canvas.width,sc.height);
+        doc.addImage(sc.toDataURL('image/jpeg',.94),'JPEG',0,0,pw,sc.height/canvas.width*pw);
+        yOff+=slicePx; pg++;
+      }
+    }
+
+    const company = document.getElementById('companyName').value||'report';
+    const modeSuffix = mode==='individual'?'_فردي':repeatHeader?'_مع_هيدر':'';
+    doc.save(`${company.replace(/\s+/g,'_')}_${monthRaw||'payroll'}${modeSuffix}.pdf`);
+
+    await DB.saveReport(currentUser.id, {
+      name:`${company} — ${monthLabel}`,
+      month:monthRaw,
+      employees:emps.length,
+      totalNet:tNet,
+      currency:cur,
+      mode
+    });
+
+    showStatus('success', `✅ PDF جاهز! — ${mode==='individual'?'كشوف فردية':'جدول'} لـ ${emps.length} موظف`);
+  } catch(err) {
+    console.error(err);
+    showStatus('error','❌ خطأ: '+err.message);
+  }
+  btn.disabled = false;
+  btn.textContent = '🖨️ توليد تقرير PDF';
+}
+
+function showStatus(type, msg) {
+  const bar = document.getElementById('statusBar');
+  bar.className = 'status-bar '+type;
+  bar.textContent = msg;
+}
+
+// ================================================================
+//  COMPANY PAGE
+// ================================================================
+function loadCompanyPage() {
+  const co = companyData||{};
+  const s=(id,v)=>{const el=document.getElementById(id);if(el&&v)el.value=v;};
+  s('co-name',co.name); s('co-email',co.email); s('co-phone',co.phone);
+  s('co-address',co.address); s('co-website',co.website); s('co-activity',co.activity);
+  if (co.logoDataUrl) {
+    const img=document.getElementById('logoPreview');
+    img.src=co.logoDataUrl; img.style.display='block';
+    document.getElementById('logoName').textContent='لوجو محفوظ ✓';
+  }
+  const logoInput = document.getElementById('logoInput');
+  if (logoInput && !logoInput._bound) {
+    logoInput._bound = true;
+    logoInput.addEventListener('change', e => {
+      const file=e.target.files[0]; if(!file) return;
+      if (file.size>2*1024*1024) return alert('حجم الصورة أكبر من 2MB');
+      const reader=new FileReader();
+      reader.onload=ev=>{
+        companyData=companyData||{};
+        companyData.logoDataUrl=ev.target.result;
+        const img=document.getElementById('logoPreview');
+        img.src=ev.target.result; img.style.display='block';
+        document.getElementById('logoName').textContent=file.name;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+}
+async function saveCompany() {
+  companyData = {
+    ...(companyData||{}),
+    name:   document.getElementById('co-name').value,
+    email:  document.getElementById('co-email').value,
+    phone:  document.getElementById('co-phone').value,
+    address:document.getElementById('co-address').value,
+    website:document.getElementById('co-website').value,
+    activity:document.getElementById('co-activity').value,
+  };
+  await DB.saveCompany(currentUser.id, companyData);
+  document.getElementById('companyName').value = companyData.name||'';
+  const msg=document.getElementById('co-msg');
+  msg.className='status-bar success'; msg.textContent='✅ تم حفظ بيانات الشركة';
+  setTimeout(()=>msg.className='status-bar',3000);
+}
+
+// ================================================================
+//  PDF SETTINGS PAGE
+// ================================================================
+function initColorSync() {
+  [['ps-headerBg','ps-headerBgTxt'],['ps-headerColor','ps-headerColorTxt'],
+   ['ps-rowBg','ps-rowBgTxt'],['ps-altRowBg','ps-altRowBgTxt'],
+   ['ps-textColor','ps-textColorTxt'],['ps-accentColor','ps-accentColorTxt']
+  ].forEach(([cid,tid]) => {
+    const ci=document.getElementById(cid), ti=document.getElementById(tid);
+    if (!ci||!ti) return;
+    ci.addEventListener('input', ()=>ti.value=ci.value);
+    ti.addEventListener('input', ()=>{ if(/^#[0-9a-fA-F]{6}$/.test(ti.value)) ci.value=ti.value; });
+  });
+}
+
+const COL_DEFS = [
+  {id:'num',label:'#'},{id:'name',label:'اسم الموظف'},{id:'base',label:'الراتب الأساسي'},
+  {id:'lateDays',label:'أيام التأخير'},{id:'lateDeduct',label:'خصم التأخير'},
+  {id:'absentDays',label:'أيام الغياب'},{id:'absentDeduct',label:'خصم الغياب'},
+  {id:'bonus',label:'المكافأة'},{id:'net',label:'الراتب الصافي'}
+];
+
+function initColOrderList() {
+  const list = document.getElementById('colOrderList');
+  if (!list) return;
+  list.innerHTML = COL_DEFS.map(c=>`
+    <div class="col-order-item" draggable="true" data-col="${c.id}" id="coi-${c.id}">
+      <span class="drag-h">⠿</span>
+      <span class="col-lbl">${c.label}</span>
+      <input type="text" id="col-label-${c.id}" value="${c.label}" placeholder="اسم العمود">
+      <input type="number" id="col-w-${c.id}" value="25" min="8" max="80">
+      <button class="vis-toggle on" id="col-vis-${c.id}" onclick="toggleColVis('${c.id}')" title="إظهار/إخفاء"></button>
+    </div>`).join('');
+  initDragSort();
+}
+function toggleColVis(id) {
+  const btn=document.getElementById('col-vis-'+id);
+  btn.classList.toggle('on'); btn.classList.toggle('off');
+}
+function initDragSort() {
+  const list=document.getElementById('colOrderList');
+  let dragged=null;
+  list.querySelectorAll('.col-order-item').forEach(item=>{
+    item.addEventListener('dragstart', ()=>{ dragged=item; item.style.opacity='.4'; });
+    item.addEventListener('dragend',   ()=>{ dragged=null; item.style.opacity=''; });
+    item.addEventListener('dragover',  e=>{ e.preventDefault(); const rect=item.getBoundingClientRect(); const mid=rect.top+rect.height/2; if(dragged&&dragged!==item) list.insertBefore(dragged, e.clientY<mid?item:item.nextSibling); });
+  });
+}
+function selectMode(mode) {
+  document.getElementById('mode-table').classList.toggle('selected', mode==='table');
+  document.getElementById('mode-individual').classList.toggle('selected', mode==='individual');
+  document.getElementById('repeat-header-opt').style.display = mode==='table'?'block':'none';
+}
+function loadPdfSettingsPage() {
+  const ps=pdfSettings||DB.getDefaultPdfSettings();
+  const set=(id,v)=>{ const el=document.getElementById(id); if(el) el.value=v; };
+  set('ps-orientation',ps.orientation); set('ps-paper',ps.paperSize);
+  set('ps-fontSize',ps.fontSize); set('ps-headerFontSize',ps.headerFontSize);
+  set('ps-rowHeight',ps.rowHeight);
+  set('ps-headerBg',ps.headerBg);       set('ps-headerBgTxt',ps.headerBg);
+  set('ps-headerColor',ps.headerColor); set('ps-headerColorTxt',ps.headerColor);
+  set('ps-rowBg',ps.rowBg);             set('ps-rowBgTxt',ps.rowBg);
+  set('ps-altRowBg',ps.altRowBg);       set('ps-altRowBgTxt',ps.altRowBg);
+  set('ps-textColor',ps.textColor);     set('ps-textColorTxt',ps.textColor);
+  set('ps-accentColor',ps.accentColor); set('ps-accentColorTxt',ps.accentColor);
+  const slEl=document.getElementById('ps-showLogo');
+  const ssEl=document.getElementById('ps-showSummary');
+  const rhEl=document.getElementById('ps-repeatHeader');
+  if (slEl) slEl.checked = ps.showLogo !== false;
+  if (ssEl) ssEl.checked = ps.showSummary !== false;
+  if (rhEl) rhEl.checked = ps.repeatHeaderPerEmployee === true;
+  selectMode(ps.reportMode||'table');
+  COL_DEFS.forEach(c=>{
+    const wEl=document.getElementById('col-w-'+c.id);
+    const lEl=document.getElementById('col-label-'+c.id);
+    if (wEl&&ps.colWidths?.[c.id]) wEl.value=ps.colWidths[c.id];
+    if (lEl&&ps.columnLabels?.[c.id]) lEl.value=ps.columnLabels[c.id];
+    if (ps.colVisibility) {
+      const vis=ps.colVisibility[c.id]!==false;
+      const btn=document.getElementById('col-vis-'+c.id);
+      if (btn) btn.className='vis-toggle '+(vis?'on':'off');
+    }
+  });
+  if (ps.columnOrder) {
+    const list=document.getElementById('colOrderList');
+    ps.columnOrder.forEach(cid=>{const el=document.getElementById('coi-'+cid);if(el)list.appendChild(el);});
+  }
+}
+async function savePdfSettings() {
+  const getV=id=>{ const el=document.getElementById(id); return el?el.value:null; };
+  const mode = document.getElementById('mode-individual').classList.contains('selected') ? 'individual' : 'table';
+  const ps = {
+    orientation:   getV('ps-orientation'),
+    paperSize:     getV('ps-paper'),
+    fontSize:      parseFloat(getV('ps-fontSize')),
+    headerFontSize:parseFloat(getV('ps-headerFontSize')),
+    rowHeight:     parseFloat(getV('ps-rowHeight')),
+    headerBg:      getV('ps-headerBgTxt'),
+    headerColor:   getV('ps-headerColorTxt'),
+    rowBg:         getV('ps-rowBgTxt'),
+    altRowBg:      getV('ps-altRowBgTxt'),
+    textColor:     getV('ps-textColorTxt'),
+    accentColor:   getV('ps-accentColorTxt'),
+    showLogo:      document.getElementById('ps-showLogo').checked,
+    showSummary:   document.getElementById('ps-showSummary').checked,
+    repeatHeaderPerEmployee: document.getElementById('ps-repeatHeader').checked,
+    reportMode:    mode,
+    colWidths:{}, columnLabels:{}, columnOrder:[], colVisibility:{}
+  };
+  document.querySelectorAll('.col-order-item').forEach(item=>{
+    const cid=item.dataset.col;
+    ps.columnOrder.push(cid);
+    const wEl=document.getElementById('col-w-'+cid);
+    const lEl=document.getElementById('col-label-'+cid);
+    const vBtn=document.getElementById('col-vis-'+cid);
+    if(wEl) ps.colWidths[cid]=parseFloat(wEl.value)||25;
+    if(lEl) ps.columnLabels[cid]=lEl.value;
+    if(vBtn) ps.colVisibility[cid]=vBtn.classList.contains('on');
+  });
+  await DB.savePdfSettings(currentUser.id, ps);
+  pdfSettings = ps;
+  const msg=document.getElementById('ps-msg');
+  msg.className='status-bar success'; msg.textContent='✅ تم حفظ إعدادات التصميم';
+  setTimeout(()=>msg.className='status-bar',3000);
+}
+async function resetPdfSettings() {
+  pdfSettings = DB.getDefaultPdfSettings();
+  await DB.savePdfSettings(currentUser.id, pdfSettings);
+  initColOrderList(); loadPdfSettingsPage();
+  const msg=document.getElementById('ps-msg');
+  msg.className='status-bar info'; msg.textContent='↩ تم استعادة الإعدادات الافتراضية';
+  setTimeout(()=>msg.className='status-bar',3000);
+}
+
+// ================================================================
+//  REPORTS
+// ================================================================
+async function loadReports() {
+  const list = await DB.getReports(currentUser.id);
+  const el   = document.getElementById('reports-list');
+  if (!list.length) {
+    el.innerHTML='<div class="empty-state"><div class="es-ico">📭</div><p>لا توجد تقارير محفوظة بعد</p></div>';
+    return;
+  }
+  const modeLabel = m => m==='individual'?'كشوف فردية':'جدول موحد';
+  el.innerHTML='<div class="reports-list">'+list.reverse().map(r=>`
+    <div class="report-item">
+      <div>
+        <div class="ri-name">📄 ${r.name||'تقرير'}</div>
+        <div class="ri-meta">
+          ${r.employees} موظف &nbsp;·&nbsp;
+          صافي: ${r.totalNet?.toLocaleString('ar-EG',{maximumFractionDigits:0})||0} ${r.currency||''}
+          &nbsp;·&nbsp; ${modeLabel(r.mode)}
+          &nbsp;·&nbsp; ${new Date(r.createdAt).toLocaleDateString('ar-EG')}
+        </div>
+      </div>
+    </div>`).join('')+'</div>';
+}
+</script>
+</body>
+</html>

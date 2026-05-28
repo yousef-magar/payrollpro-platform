@@ -1,0 +1,1299 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PayrollPro — التطبيق</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="db.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --green:#40916c;--green-dark:#2d6a4f;--green-light:#52b788;
+  --bg:#0a1628;--bg2:#0f1f35;--bg3:#162a44;
+  --card:#162336;--border:#1e3450;
+  --text:#e8edf2;--muted:#7a9ab8;--accent:#7ecfad;
+  --red:#f87171;--amber:#fbbf24;--blue:#60a5fa;
+}
+body{font-family:'Segoe UI',Tahoma,Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* ========== AUTH SCREEN ========== */
+#auth-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:radial-gradient(ellipse 70% 50% at 50% 40%,rgba(64,145,108,.1) 0%,transparent 70%)}
+.auth-box{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:40px;width:100%;max-width:420px}
+.auth-logo{text-align:center;margin-bottom:32px}
+.auth-logo .icon{width:60px;height:60px;background:linear-gradient(135deg,var(--green-dark),var(--green));border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 12px}
+.auth-logo h1{font-size:22px;font-weight:700;color:#fff}
+.auth-logo p{font-size:13px;color:var(--muted)}
+.auth-tabs{display:flex;background:var(--bg);border-radius:10px;padding:4px;margin-bottom:24px;gap:4px}
+.auth-tab{flex:1;text-align:center;padding:10px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;color:var(--muted);transition:.2s}
+.auth-tab.active{background:var(--green);color:#fff}
+.field{margin-bottom:16px}
+.field label{font-size:13px;color:var(--muted);display:block;margin-bottom:6px}
+.field input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:12px 16px;font-size:14px;font-family:inherit;outline:none;transition:.2s}
+.field input:focus{border-color:var(--green)}
+.btn-full{width:100%;background:linear-gradient(135deg,var(--green-dark),var(--green));color:#fff;border:none;padding:14px;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;transition:.2s;margin-top:8px}
+.btn-full:hover{opacity:.9}
+.auth-msg{font-size:13px;padding:10px 14px;border-radius:8px;margin-top:12px;display:none}
+.auth-msg.error{background:#2d0f0f;color:var(--red);border:1px solid #7f1d1d;display:block}
+.auth-msg.success{background:#0d2d1a;color:#4ade80;border:1px solid #14532d;display:block}
+
+/* ========== APP LAYOUT ========== */
+#app-screen{display:none;min-height:100vh}
+.app-nav{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 32px;height:64px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.app-nav-logo{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:700;color:#fff;text-decoration:none}
+.app-nav-logo span{background:linear-gradient(135deg,var(--green-dark),var(--green));width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px}
+.nav-user{display:flex;align-items:center;gap:10px}
+.user-av{width:36px;height:36px;border-radius:50%;background:var(--green);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.user-name{font-size:14px;color:var(--muted)}
+.btn-logout{background:transparent;border:1px solid var(--border);color:var(--muted);padding:7px 14px;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;transition:.2s}
+.btn-logout:hover{border-color:var(--red);color:var(--red)}
+
+.app-layout{display:flex;min-height:calc(100vh - 64px)}
+.sidebar{width:220px;background:var(--bg2);border-left:1px solid var(--border);padding:20px 12px;flex-shrink:0}
+.sidebar-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;font-size:14px;color:var(--muted);cursor:pointer;transition:.2s;margin-bottom:4px}
+.sidebar-item:hover{background:var(--bg3);color:var(--text)}
+.sidebar-item.active{background:rgba(64,145,108,.15);color:var(--accent);font-weight:600}
+.sidebar-item .ico{font-size:18px;width:22px;text-align:center}
+.app-main{flex:1;padding:28px 32px;overflow-y:auto}
+
+/* ========== PAGE SECTIONS ========== */
+.page{display:none}.page.active{display:block}
+.page-title{font-size:20px;font-weight:700;color:#fff;margin-bottom:24px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px;margin-bottom:20px}
+.card-title{font-size:15px;font-weight:600;color:var(--accent);margin-bottom:18px}
+.settings-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+
+/* ========== UPLOAD ========== */
+.upload-zone{border:2px dashed var(--border);border-radius:12px;padding:48px 24px;text-align:center;cursor:pointer;transition:.2s;background:var(--bg)}
+.upload-zone:hover{border-color:var(--green);background:var(--bg2)}
+.upload-zone input{display:none}
+.upload-zone .ico{font-size:48px;margin-bottom:14px}
+.upload-zone h3{font-size:16px;color:#c5dff0;margin-bottom:6px}
+.upload-zone p{font-size:13px;color:var(--muted)}
+
+/* ========== STEPS ========== */
+.step-indicator{display:flex;margin-bottom:24px}
+.step{flex:1;text-align:center;padding:10px;font-size:13px;color:#3d5a72;border-bottom:2px solid var(--border)}
+.step.active{color:var(--accent);border-bottom-color:var(--green);font-weight:600}
+.step.done{color:#4ade80;border-bottom-color:var(--green-dark)}
+
+/* ========== COL MAP ========== */
+.col-map-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.col-map-item{display:flex;align-items:center;gap:10px}
+.col-map-item label{font-size:13px;color:var(--muted);min-width:120px}
+.col-map-item select{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:8px 12px;font-size:13px;outline:none}
+
+/* ========== RULES ========== */
+.rules-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.rule-card{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px}
+.rule-card label{font-size:12px;color:var(--muted);display:block;margin-bottom:6px}
+.rule-card input,.rule-card select{width:100%;background:var(--card);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 12px;font-size:13px;font-family:inherit;outline:none}
+.rule-card .desc{font-size:11px;color:#3d5a72;margin-top:4px}
+
+/* ========== PREVIEW TABLE ========== */
+.preview-table{width:100%;border-collapse:collapse;font-size:13px}
+.preview-table th{background:var(--border);color:var(--accent);padding:10px 14px;text-align:right;font-weight:600;border-bottom:2px solid var(--green)}
+.preview-table td{padding:10px 14px;border-bottom:1px solid #1a2d42;color:#c5dff0}
+.preview-table tr:hover td{background:#1a2d42}
+.badge{display:inline-block;padding:2px 8px;border-radius:5px;font-size:11px;font-weight:600}
+.badge-red{background:#2d0f0f;color:var(--red);border:1px solid #7f1d1d}
+.badge-green{background:#0d2d1a;color:#4ade80;border:1px solid #14532d}
+.badge-amber{background:#2d1f0a;color:var(--amber);border:1px solid #78350f}
+
+/* ========== SUMMARY CARDS ========== */
+.summary-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+.sum-card{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center}
+.sum-card .val{font-size:20px;font-weight:700;margin-bottom:4px}
+.sum-card .lbl{font-size:12px;color:var(--muted)}
+.sum-card.blue .val{color:var(--blue)}
+.sum-card.green .val{color:#4ade80}
+.sum-card.red .val{color:var(--red)}
+.sum-card.amber .val{color:var(--amber)}
+
+/* ========== BUTTONS ========== */
+.btn{display:inline-flex;align-items:center;gap:8px;padding:11px 22px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;border:none;transition:.2s;font-family:inherit}
+.btn-primary{background:linear-gradient(135deg,var(--green-dark),var(--green));color:#fff}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(64,145,108,.4)}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-ghost{background:var(--bg3);color:var(--muted);border:1px solid var(--border)}
+.btn-ghost:hover{background:var(--border)}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+
+/* ========== STATUS ========== */
+.status-bar{padding:12px 16px;border-radius:9px;font-size:13px;display:none;align-items:center;gap:8px;margin-top:12px}
+.status-bar.success{background:#0d2d1a;border:1px solid #14532d;color:#4ade80;display:flex}
+.status-bar.error{background:#2d0f0f;border:1px solid #7f1d1d;color:var(--red);display:flex}
+.status-bar.info{background:#0d1f2d;border:1px solid var(--border);color:var(--blue);display:flex}
+
+/* ========== PDF SETTINGS PAGE ========== */
+.pdf-settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.color-field{display:flex;align-items:center;gap:10px}
+.color-field input[type=color]{width:44px;height:36px;border:1px solid var(--border);border-radius:8px;background:var(--bg);padding:3px;cursor:pointer}
+.color-field input[type=text]{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:8px 12px;font-size:13px;font-family:monospace;outline:none}
+.col-order-list{display:flex;flex-direction:column;gap:6px}
+.col-order-item{display:flex;align-items:center;gap:10px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;cursor:grab}
+.col-order-item .drag-handle{color:var(--muted);font-size:16px}
+.col-order-item label{flex:1;font-size:13px;color:var(--text)}
+.col-order-item input[type=text]{width:140px;background:var(--card);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:6px 10px;font-size:12px;font-family:inherit;outline:none}
+.col-order-item input[type=number]{width:70px;background:var(--card);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:6px 10px;font-size:12px;text-align:center;outline:none}
+.col-order-item .vis-toggle{width:36px;height:20px;border-radius:10px;border:none;cursor:pointer;transition:.2s;position:relative;flex-shrink:0}
+.col-order-item .vis-toggle.on{background:var(--green)}
+.col-order-item .vis-toggle.off{background:#3d5a72}
+
+/* ========== COMPANY PAGE ========== */
+.logo-upload{border:2px dashed var(--border);border-radius:12px;padding:32px;text-align:center;cursor:pointer;transition:.2s;background:var(--bg)}
+.logo-upload:hover{border-color:var(--green)}
+.logo-preview{width:120px;height:80px;object-fit:contain;border-radius:8px;border:1px solid var(--border);display:none}
+
+/* ========== REPORTS PAGE ========== */
+.reports-list{display:flex;flex-direction:column;gap:10px}
+.report-item{display:flex;align-items:center;justify-content:space-between;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px 18px}
+.report-item .info .name{font-size:14px;font-weight:600;color:var(--text)}
+.report-item .info .meta{font-size:12px;color:var(--muted);margin-top:3px}
+.empty-state{text-align:center;padding:48px;color:var(--muted)}
+.empty-state .ico{font-size:48px;margin-bottom:12px}
+
+/* ========== PDF HIDDEN TEMPLATE ========== */
+#pdf-template{position:fixed;left:-9999px;top:0;width:1122px;background:#0d2137;color:#e8edf2;font-family:'Segoe UI',Tahoma,Arial,sans-serif;direction:rtl;padding:0}
+.pdf-header{padding:20px 28px;display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #2d6a4f}
+.pdf-header .co-info .co-name{font-size:22px;font-weight:700;color:#fff}
+.pdf-header .co-info .co-sub{font-size:13px;color:#7ecfad;margin-top:4px}
+.pdf-header .meta-info{text-align:left;font-size:11px;color:#5a7a94}
+.pdf-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:#1e3450}
+.pdf-sum-box{background:#162336;padding:12px 18px;text-align:center}
+.pdf-sum-box .v{font-size:18px;font-weight:700}
+.pdf-sum-box .l{font-size:11px;color:#5a7a94;margin-top:2px}
+#pdf-table-wrap{overflow:hidden}
+.pdf-table{width:100%;border-collapse:collapse;font-size:11px}
+.pdf-table th{background:#1e3450;color:#7ecfad;padding:9px 10px;text-align:center;font-weight:600;border-bottom:2px solid #2d6a4f;white-space:nowrap}
+.pdf-table td{padding:8px 10px;border-bottom:1px solid #1a2d42;text-align:center;color:#c5dff0}
+.pdf-table tr:nth-child(even) td{background:#0f1923}
+.pdf-table .total-row td{background:#1a2d42!important;color:#fff;font-weight:700;border-top:2px solid #2d6a4f}
+.pdf-name-cell{text-align:right!important;font-weight:600;color:#e8edf2!important}
+.pdf-footer{padding:9px 28px;display:flex;justify-content:space-between;font-size:10px;color:#3d5a72;border-top:1px solid #1e3450}
+
+@media(max-width:768px){
+  .sidebar{display:none}
+  .summary-cards{grid-template-columns:1fr 1fr}
+  .rules-grid{grid-template-columns:1fr 1fr}
+  .pdf-settings-grid{grid-template-columns:1fr}
+  .col-map-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- ==================== AUTH ==================== -->
+<div id="auth-screen">
+  <div class="auth-box">
+    <div class="auth-logo">
+      <div class="icon">📊</div>
+      <h1>PayrollPro</h1>
+      <p>نظام الرواتب الذكي</p>
+    </div>
+    <div class="auth-tabs">
+      <div class="auth-tab active" onclick="switchAuthTab('login')">تسجيل الدخول</div>
+      <div class="auth-tab" onclick="switchAuthTab('register')">حساب جديد</div>
+    </div>
+    <!-- LOGIN -->
+    <div id="login-form">
+      <div class="field"><label>اسم المستخدم</label><input type="text" id="login-user" placeholder="أدخل اسم المستخدم"></div>
+      <div class="field"><label>كلمة المرور</label><input type="password" id="login-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <button class="btn-full" onclick="doLogin()">دخول ←</button>
+      <div id="login-msg" class="auth-msg"></div>
+    </div>
+    <!-- REGISTER -->
+    <div id="register-form" style="display:none">
+      <div class="field"><label>اسم المستخدم</label><input type="text" id="reg-user" placeholder="اختر اسم مستخدم فريد"></div>
+      <div class="field"><label>البريد الإلكتروني</label><input type="email" id="reg-email" placeholder="example@mail.com"></div>
+      <div class="field"><label>كلمة المرور</label><input type="password" id="reg-pass" placeholder="8 أحرف على الأقل"></div>
+      <div class="field"><label>تأكيد كلمة المرور</label><input type="password" id="reg-pass2" placeholder="أعد كتابة كلمة المرور" onkeydown="if(event.key==='Enter')doRegister()"></div>
+      <button class="btn-full" onclick="doRegister()">إنشاء الحساب</button>
+      <div id="reg-msg" class="auth-msg"></div>
+    </div>
+    <p style="text-align:center;margin-top:18px;font-size:12px;color:var(--muted)"><a href="index.html" style="color:var(--accent);text-decoration:none">← العودة للصفحة الرئيسية</a></p>
+  </div>
+</div>
+
+<!-- ==================== APP ==================== -->
+<div id="app-screen">
+  <nav class="app-nav">
+    <a href="index.html" class="app-nav-logo"><span>📊</span>PayrollPro</a>
+    <div class="nav-user">
+      <span class="user-name" id="nav-username"></span>
+      <div class="user-av" id="nav-av"></div>
+      <button class="btn-logout" onclick="doLogout()">خروج</button>
+    </div>
+  </nav>
+  <div class="app-layout">
+    <aside class="sidebar">
+      <div class="sidebar-item active" onclick="showPage('payroll')" data-page="payroll"><span class="ico">📊</span>الرواتب</div>
+      <div class="sidebar-item" onclick="showPage('company')" data-page="company"><span class="ico">🏢</span>الشركة</div>
+      <div class="sidebar-item" onclick="showPage('pdf-settings')" data-page="pdf-settings"><span class="ico">🎨</span>تصميم PDF</div>
+      <div class="sidebar-item" onclick="showPage('reports')" data-page="reports"><span class="ico">📁</span>التقارير</div>
+    </aside>
+    <main class="app-main">
+
+      <!-- ========== PAGE: PAYROLL ========== -->
+      <div id="page-payroll" class="page active">
+        <div class="page-title">📊 كشف الرواتب</div>
+
+        <div class="step-indicator">
+          <div class="step active" id="step1">① رفع الملف</div>
+          <div class="step" id="step2">② مطابقة الأعمدة</div>
+          <div class="step" id="step3">③ معاينة وتوليد</div>
+        </div>
+
+        <!-- UPLOAD STEP -->
+        <div id="p-upload">
+          <div class="card">
+            <div class="card-title">📂 رفع ملف البيانات</div>
+            <div class="upload-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+              <div class="ico">📄</div>
+              <h3>اسحب الملف هنا أو اضغط للاختيار</h3>
+              <p>يدعم Excel (.xlsx, .xls) و CSV</p>
+              <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">📅 بيانات التقرير</div>
+            <div class="settings-grid">
+              <div class="field"><label>اسم الشركة</label><input type="text" id="companyName" placeholder="اسم الشركة"></div>
+              <div class="field"><label>الشهر</label><input type="month" id="reportMonth"></div>
+              <div class="field"><label>العملة</label>
+                <select id="currency" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px 12px;font-size:14px;outline:none">
+                  <option value="ج.م">ج.م (جنيه مصري)</option>
+                  <option value="ر.س">ر.س (ريال سعودي)</option>
+                  <option value="د.إ">د.إ (درهم إماراتي)</option>
+                  <option value="USD">USD</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- MAPPING STEP -->
+        <div id="p-mapping" style="display:none">
+          <div class="card">
+            <div class="card-title">🗂️ مطابقة الأعمدة</div>
+            <div class="col-map-grid" id="colMapGrid"></div>
+          </div>
+          <div class="card">
+            <div class="card-title">⚙️ قواعد الخصم والمكافآت</div>
+            <div class="rules-grid">
+              <div class="rule-card">
+                <label>نسبة خصم التأخير</label>
+                <input type="number" id="lateRate" value="50" min="0" max="100">
+                <div class="desc">% من اليومية / يوم تأخير</div>
+              </div>
+              <div class="rule-card">
+                <label>نسبة خصم الغياب</label>
+                <input type="number" id="absentRate" value="100" min="0" max="200">
+                <div class="desc">% من اليومية / يوم غياب</div>
+              </div>
+              <div class="rule-card">
+                <label>أيام العمل في الشهر</label>
+                <input type="number" id="workDays" value="26" min="20" max="31">
+                <div class="desc">لحساب اليومية</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PREVIEW STEP -->
+        <div id="p-preview" style="display:none">
+          <div class="card">
+            <div class="card-title">👁️ معاينة البيانات</div>
+            <div class="summary-cards" id="summaryCards"></div>
+            <div style="overflow-x:auto">
+              <table class="preview-table" id="previewTable"><thead><tr></tr></thead><tbody></tbody></table>
+            </div>
+            <div id="statusBar" class="status-bar"></div>
+            <div class="actions">
+              <button class="btn btn-primary" id="generateBtn" onclick="generatePDF()">🖨️ توليد تقرير PDF</button>
+              <button class="btn btn-ghost" onclick="goBack()">← رجوع</button>
+              <button class="btn btn-ghost" onclick="resetAll()">↩ ملف جديد</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========== PAGE: COMPANY ========== -->
+      <div id="page-company" class="page">
+        <div class="page-title">🏢 إعدادات الشركة</div>
+        <div class="card">
+          <div class="card-title">لوجو الشركة</div>
+          <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+            <div class="logo-upload" id="logoUploadZone" onclick="document.getElementById('logoInput').click()" style="flex:1;min-width:180px">
+              <div style="font-size:36px;margin-bottom:8px">🖼️</div>
+              <p style="font-size:13px;color:var(--muted)">اضغط لرفع لوجو الشركة<br><small>PNG, JPG, SVG — حتى 2MB</small></p>
+              <input type="file" id="logoInput" accept="image/*" style="display:none">
+            </div>
+            <div style="text-align:center">
+              <img id="logoPreview" class="logo-preview" alt="لوجو">
+              <div id="logoName" style="font-size:12px;color:var(--muted);margin-top:6px"></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">بيانات الشركة</div>
+          <div class="settings-grid">
+            <div class="field"><label>اسم الشركة</label><input type="text" id="co-name" placeholder="شركة الأفق للتطوير"></div>
+            <div class="field"><label>البريد الإلكتروني</label><input type="email" id="co-email" placeholder="info@company.com"></div>
+            <div class="field"><label>رقم الهاتف</label><input type="text" id="co-phone" placeholder="+20 100 000 0000"></div>
+            <div class="field"><label>العنوان</label><input type="text" id="co-address" placeholder="القاهرة، مصر"></div>
+            <div class="field"><label>الموقع الإلكتروني</label><input type="text" id="co-website" placeholder="www.company.com"></div>
+            <div class="field"><label>النشاط التجاري</label><input type="text" id="co-activity" placeholder="تطوير برمجيات"></div>
+          </div>
+          <button class="btn btn-primary" style="margin-top:16px" onclick="saveCompany()">💾 حفظ البيانات</button>
+          <div id="co-msg" class="status-bar"></div>
+        </div>
+      </div>
+
+      <!-- ========== PAGE: PDF SETTINGS ========== -->
+      <div id="page-pdf-settings" class="page">
+        <div class="page-title">🎨 تخصيص تصميم PDF</div>
+
+        <div class="pdf-settings-grid">
+          <div>
+            <div class="card">
+              <div class="card-title">إعدادات الصفحة</div>
+              <div class="rules-grid" style="grid-template-columns:1fr 1fr">
+                <div class="rule-card"><label>اتجاه الصفحة</label>
+                  <select id="ps-orientation"><option value="landscape">أفقي (Landscape)</option><option value="portrait">رأسي (Portrait)</option></select></div>
+                <div class="rule-card"><label>حجم الورق</label>
+                  <select id="ps-paper"><option value="a4">A4</option><option value="a3">A3</option><option value="letter">Letter</option></select></div>
+                <div class="rule-card"><label>حجم الخط الأساسي</label><input type="number" id="ps-fontSize" value="10" min="7" max="16"><div class="desc">pt</div></div>
+                <div class="rule-card"><label>حجم خط العناوين</label><input type="number" id="ps-headerFontSize" value="12" min="9" max="18"><div class="desc">pt</div></div>
+                <div class="rule-card"><label>ارتفاع الصف</label><input type="number" id="ps-rowHeight" value="10" min="6" max="20"><div class="desc">mm</div></div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title">ألوان التقرير</div>
+              <div style="display:flex;flex-direction:column;gap:12px">
+                <div><label style="font-size:13px;color:var(--muted);display:block;margin-bottom:6px">خلفية رأس الجدول</label>
+                  <div class="color-field"><input type="color" id="ps-headerBg" value="#1e3450"><input type="text" id="ps-headerBgTxt" value="#1e3450"></div></div>
+                <div><label style="font-size:13px;color:var(--muted);display:block;margin-bottom:6px">لون نص العناوين</label>
+                  <div class="color-field"><input type="color" id="ps-headerColor" value="#7ecfad"><input type="text" id="ps-headerColorTxt" value="#7ecfad"></div></div>
+                <div><label style="font-size:13px;color:var(--muted);display:block;margin-bottom:6px">خلفية الصفوف</label>
+                  <div class="color-field"><input type="color" id="ps-rowBg" value="#162336"><input type="text" id="ps-rowBgTxt" value="#162336"></div></div>
+                <div><label style="font-size:13px;color:var(--muted);display:block;margin-bottom:6px">خلفية الصفوف المتناوبة</label>
+                  <div class="color-field"><input type="color" id="ps-altRowBg" value="#0f1923"><input type="text" id="ps-altRowBgTxt" value="#0f1923"></div></div>
+                <div><label style="font-size:13px;color:var(--muted);display:block;margin-bottom:6px">لون النصوص</label>
+                  <div class="color-field"><input type="color" id="ps-textColor" value="#c5dff0"><input type="text" id="ps-textColorTxt" value="#c5dff0"></div></div>
+                <div><label style="font-size:13px;color:var(--muted);display:block;margin-bottom:6px">لون لون التمييز</label>
+                  <div class="color-field"><input type="color" id="ps-accentColor" value="#40916c"><input type="text" id="ps-accentColorTxt" value="#40916c"></div></div>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="card">
+              <div class="card-title">ترتيب وعرض الأعمدة</div>
+              <p style="font-size:12px;color:var(--muted);margin-bottom:12px">اسحب لإعادة الترتيب — يمكنك تغيير التسمية والعرض وإخفاء أي عمود</p>
+              <div class="col-order-list" id="colOrderList"></div>
+            </div>
+            <div class="card" style="margin-top:0">
+              <div class="card-title">خيارات إضافية</div>
+              <div style="display:flex;flex-direction:column;gap:12px">
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px;color:var(--text)">
+                  <input type="checkbox" id="ps-showLogo" checked style="width:16px;height:16px;accent-color:var(--green)">
+                  عرض لوجو الشركة في التقرير
+                </label>
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px;color:var(--text)">
+                  <input type="checkbox" id="ps-showSummary" checked style="width:16px;height:16px;accent-color:var(--green)">
+                  عرض صندوق الملخص
+                </label>
+                <div style="height:1px;background:var(--border);margin:4px 0"></div>
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px;color:var(--text)">
+                  <input type="checkbox" id="ps-slipMode" style="width:16px;height:16px;accent-color:var(--green)">
+                  <div>
+                    <div style="font-weight:700">وضع الكشف الفردي</div>
+                    <div style="font-size:12px;color:var(--muted);margin-top:2px">كل موظف في قسم منفصل — لوجو + عناوين + بياناته</div>
+                  </div>
+                </label>
+              </div>
+              <button class="btn btn-primary" style="margin-top:16px;width:100%" onclick="savePdfSettings()">💾 حفظ الإعدادات</button>
+              <button class="btn btn-ghost" style="margin-top:8px;width:100%" onclick="resetPdfSettings()">↩ استعادة الافتراضي</button>
+              <div id="ps-msg" class="status-bar"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========== PAGE: REPORTS ========== -->
+      <div id="page-reports" class="page">
+        <div class="page-title">📁 سجل التقارير</div>
+        <div class="card">
+          <div class="card-title">التقارير المحفوظة</div>
+          <div id="reports-list"></div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- PDF HIDDEN TEMPLATE -->
+<div id="pdf-template">
+  <div class="pdf-header" id="pdf-header">
+    <div class="co-info">
+      <div class="co-name" id="pdf-co-name"></div>
+      <div class="co-sub" id="pdf-co-sub"></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:16px">
+      <img id="pdf-logo" style="height:60px;max-width:120px;object-fit:contain;display:none" alt="">
+      <div class="meta-info" id="pdf-meta"></div>
+    </div>
+  </div>
+  <div id="pdf-summary-section">
+    <div class="pdf-summary" id="pdf-summary"></div>
+  </div>
+  <div id="pdf-table-wrap">
+    <table class="pdf-table" id="pdf-table"><thead><tr id="pdf-thead"></tr></thead><tbody id="pdf-tbody"></tbody></table>
+  </div>
+  <div class="pdf-footer">
+    <span id="pdf-footer-l"></span>
+    <span>PayrollPro — نظام الرواتب الذكي</span>
+  </div>
+</div>
+
+<!-- SLIP MODE TEMPLATE — one block per employee -->
+<div id="pdf-slip-template" style="position:fixed;left:-9999px;top:0;width:794px;background:#0d2137;color:#e8edf2;font-family:'Segoe UI',Tahoma,Arial,sans-serif;direction:rtl;padding:0">
+  <div id="slip-blocks-container"></div>
+</div>
+
+<script>
+const { jsPDF } = window.jspdf;
+let currentUser = null;
+let rawData = [], fileColumns = [];
+let currentStep = 1;
+let pdfSettings = null;
+let companyData = null;
+
+// ==================== INIT ====================
+window.addEventListener('DOMContentLoaded', async () => {
+  await DB.open();
+  const saved = sessionStorage.getItem('ppUser');
+  if (saved) {
+    currentUser = JSON.parse(saved);
+    enterApp();
+  }
+  const now = new Date();
+  document.getElementById('reportMonth').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  initColorSync();
+  initColOrderList();
+  setupDragDrop();
+});
+
+// ==================== AUTH ====================
+function switchAuthTab(tab) {
+  document.querySelectorAll('.auth-tab').forEach((t,i) => t.classList.toggle('active', (tab==='login'&&i===0)||(tab==='register'&&i===1)));
+  document.getElementById('login-form').style.display    = tab==='login'    ? 'block' : 'none';
+  document.getElementById('register-form').style.display = tab==='register' ? 'block' : 'none';
+}
+
+async function doLogin() {
+  const u = document.getElementById('login-user').value.trim();
+  const p = document.getElementById('login-pass').value;
+  if (!u || !p) return setAuthMsg('login-msg','error','يرجى ملء جميع الحقول');
+  const res = await DB.login(u, p);
+  if (!res.ok) return setAuthMsg('login-msg','error',res.error);
+  currentUser = res.user;
+  sessionStorage.setItem('ppUser', JSON.stringify(currentUser));
+  enterApp();
+}
+
+async function doRegister() {
+  const u  = document.getElementById('reg-user').value.trim();
+  const e  = document.getElementById('reg-email').value.trim();
+  const p  = document.getElementById('reg-pass').value;
+  const p2 = document.getElementById('reg-pass2').value;
+  if (!u||!e||!p||!p2) return setAuthMsg('reg-msg','error','يرجى ملء جميع الحقول');
+  if (p !== p2) return setAuthMsg('reg-msg','error','كلمتا المرور غير متطابقتان');
+  if (p.length < 6) return setAuthMsg('reg-msg','error','كلمة المرور قصيرة — 6 أحرف على الأقل');
+  const res = await DB.register(u, p, e);
+  if (!res.ok) return setAuthMsg('reg-msg','error',res.error);
+  setAuthMsg('reg-msg','success','✅ تم إنشاء الحساب — جاري الدخول...');
+  setTimeout(() => { currentUser = res.user; sessionStorage.setItem('ppUser', JSON.stringify(currentUser)); enterApp(); }, 900);
+}
+
+function setAuthMsg(id, type, msg) {
+  const el = document.getElementById(id);
+  el.className = 'auth-msg ' + type;
+  el.textContent = msg;
+}
+
+async function enterApp() {
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('app-screen').style.display  = 'block';
+  document.getElementById('nav-username').textContent  = currentUser.username;
+  document.getElementById('nav-av').textContent        = currentUser.username[0].toUpperCase();
+  // Load user data
+  companyData  = await DB.getCompany(currentUser.id) || {};
+  pdfSettings  = await DB.getPdfSettings(currentUser.id);
+  if (companyData.name) document.getElementById('companyName').value = companyData.name;
+  loadCompanyPage();
+  loadPdfSettingsPage();
+}
+
+function doLogout() {
+  sessionStorage.removeItem('ppUser');
+  currentUser = null;
+  rawData = []; fileColumns = [];
+  document.getElementById('auth-screen').style.display = 'flex';
+  document.getElementById('app-screen').style.display  = 'none';
+  resetAll();
+}
+
+// ==================== NAVIGATION ====================
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  document.querySelector(`[data-page="${name}"]`).classList.add('active');
+  if (name === 'reports') loadReports();
+}
+
+// ==================== DRAG & DROP FILE ====================
+function setupDragDrop() {
+  const dz = document.getElementById('dropZone');
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.style.borderColor='var(--green)'; });
+  dz.addEventListener('dragleave', () => dz.style.borderColor='');
+  dz.addEventListener('drop', e => { e.preventDefault(); dz.style.borderColor=''; handleFile(e.dataTransfer.files[0]); });
+  document.getElementById('fileInput').addEventListener('change', e => handleFile(e.target.files[0]));
+}
+
+function handleFile(file) {
+  if (!file) return;
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (['xlsx','xls'].includes(ext)) readExcel(file);
+  else if (ext==='csv') readCSV(file);
+  else showStatus('error','❌ نوع الملف غير مدعوم');
+}
+
+function readExcel(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      // Use Uint8Array — the only way that correctly handles Arabic/Unicode in xlsx
+      const data8 = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data8, {
+        type: 'array',
+        cellText: true,
+        cellDates: false,
+        raw: false,
+        dense: false
+      });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+
+      // sheet_to_json with header:1 gives us raw 2D array — best for Arabic
+      const aoa = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', blankrows: false });
+      if (!aoa || aoa.length < 2) return showStatus('error', '❌ الملف فارغ أو لا يحتوي على بيانات');
+
+      // Build clean headers — decode any escaped chars
+      const rawHeaders = aoa[0];
+      const headers = rawHeaders.map(h => {
+        let s = (h === null || h === undefined) ? '' : String(h);
+        // fix mojibake: if looks like latin garbage, try to re-encode as windows-1256
+        s = s.trim();
+        return s;
+      });
+
+      const validHeaders = headers.filter(h => h !== '');
+      if (!validHeaders.length) return showStatus('error', '❌ لم يتم العثور على عناوين الأعمدة في الصف الأول');
+
+      const data = [];
+      for (let i = 1; i < aoa.length; i++) {
+        const row = aoa[i];
+        if (!row || row.every(c => c === '' || c === null || c === undefined)) continue;
+        const obj = {};
+        headers.forEach((h, idx) => {
+          if (h === '') return;
+          const cell = row[idx];
+          obj[h] = (cell === null || cell === undefined) ? '' : cell;
+        });
+        data.push(obj);
+      }
+
+      if (!data.length) return showStatus('error', '❌ الملف لا يحتوي على صفوف بيانات');
+      fileColumns = validHeaders;
+      rawData = data;
+      showStep(2);
+    } catch(err) {
+      console.error('Excel read error:', err);
+      showStatus('error', '❌ خطأ في قراءة الملف: ' + err.message);
+    }
+  };
+  // ArrayBuffer is the correct reader type for XLSX type:'array'
+  reader.readAsArrayBuffer(file);
+}
+
+function readCSV(file) {
+  Papa.parse(file,{
+    header: true, skipEmptyLines: true, encoding: 'UTF-8',
+    complete: r => {
+      if (!r.data.length) return showStatus('error','❌ الملف فارغ');
+      const fields = r.meta.fields.map(f => String(f).trim()).filter(f => f);
+      const data   = r.data.map(row => {
+        const obj = {};
+        r.meta.fields.forEach(orig => { const c=String(orig).trim(); if(c) obj[c]=row[orig]??''; });
+        return obj;
+      });
+      fileColumns = fields; rawData = data; showStep(2);
+    }
+  });
+}
+
+// ==================== STEPS ====================
+function showStep(n) {
+  currentStep = n;
+  document.getElementById('p-upload').style.display  = n===1?'block':'none';
+  document.getElementById('p-mapping').style.display = n===2?'block':'none';
+  document.getElementById('p-preview').style.display = n===3?'block':'none';
+  ['step1','step2','step3'].forEach((id,i) => {
+    document.getElementById(id).className = 'step' + (i+1<n?' done':i+1===n?' active':'');
+  });
+  if (n===2) buildMappingUI();
+  if (n===3) buildPreview();
+}
+
+function goBack() { showStep(currentStep > 1 ? currentStep-1 : 1); }
+
+function resetAll() {
+  rawData=[]; fileColumns=[];
+  document.getElementById('fileInput').value='';
+  showStep(1);
+}
+
+// ==================== COLUMN MAPPING ====================
+const HINTS = {
+  name:   ['اسم الموظف','اسم','الاسم','الموظف','موظف','name','employee','emp','staff'],
+  salary: ['الراتب الأساسي','الراتب','راتب','أساسي','salary','base','basic','gross'],
+  late:   ['أيام التأخير','تأخير','تأخر','late','lateDays','delay'],
+  absent: ['أيام الغياب','غياب','absent','absence','absentDays','leave'],
+  bonus:  ['مكافأة','مكافآت','مكافئة','حافز','علاوة','bonus','incentive','reward']
+};
+
+function guessCol(field) {
+  const hints = HINTS[field] || [];
+  // exact match first (Arabic headers often match exactly)
+  for (const col of fileColumns)
+    for (const h of hints)
+      if (col.trim() === h) return col;
+  // then partial match (case-insensitive for Latin, direct includes for Arabic)
+  for (const col of fileColumns)
+    for (const h of hints)
+      if (col.toLowerCase().includes(h.toLowerCase()) || col.includes(h)) return col;
+  return '';
+}
+
+function buildMappingUI() {
+  const fields = [
+    {id:'mapName',  l:'اسم الموظف *',     key:'name'},
+    {id:'mapSalary',l:'الراتب الأساسي *', key:'salary'},
+    {id:'mapLate',  l:'أيام التأخير',     key:'late'},
+    {id:'mapAbsent',l:'أيام الغياب',      key:'absent'},
+    {id:'mapBonus', l:'المكافآت',         key:'bonus'}
+  ];
+
+  // Show detected columns as badges so user can verify Arabic headers read correctly
+  const colBadges = fileColumns.map(c =>
+    `<span style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:3px 10px;font-size:12px;color:var(--accent)">${c}</span>`
+  ).join('');
+  const colsInfo = `<div style="margin-bottom:14px">
+    <div style="font-size:12px;color:var(--muted);margin-bottom:6px">📋 الأعمدة المكتشفة في الملف (${fileColumns.length} عمود):</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px">${colBadges}</div>
+  </div>`;
+
+  document.getElementById('colMapGrid').innerHTML = colsInfo + fields.map(f => {
+    const g = guessCol(f.key);
+    const opts = ['<option value="">-- غير موجود --</option>',
+      ...fileColumns.map(c=>`<option value="${c}" ${c===g?'selected':''}>${c}</option>`)
+    ].join('');
+    return `<div class="col-map-item"><label>${f.l}</label><select id="${f.id}" onchange="onMappingChange()">${opts}</select></div>`;
+  }).join('');
+  // Add preview button at bottom of mapping card
+  const mapCard = document.getElementById('colMapGrid').closest('.card');
+  let previewBtn = document.getElementById('mapping-preview-btn');
+  if (!previewBtn) {
+    previewBtn = document.createElement('div');
+    previewBtn.id = 'mapping-preview-btn';
+    previewBtn.style.cssText = 'margin-top:16px;display:flex;gap:10px;align-items:center';
+    previewBtn.innerHTML = `
+      <button class="btn btn-primary" onclick="goToPreview()">👁️ عرض المعاينة ←</button>
+      <span id="mapping-hint" style="font-size:13px;color:var(--muted)">حدد اسم الموظف والراتب أولاً</span>`;
+    mapCard.appendChild(previewBtn);
+  }
+  ['lateRate','absentRate','workDays','currency'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.oninput = () => { if (currentStep===3) buildPreview(); };
+  });
+  // Auto-preview if both required cols guessed
+  setTimeout(() => {
+    const m = getMap();
+    if (m.name && m.salary) {
+      document.getElementById('mapping-hint').textContent = '✅ تم اكتشاف الأعمدة — اضغط للمعاينة';
+      document.getElementById('mapping-hint').style.color = 'var(--accent)';
+    }
+  }, 100);
+}
+
+function onMappingChange() {
+  const m = getMap();
+  const hint = document.getElementById('mapping-hint');
+  if (!hint) return;
+  if (m.name && m.salary) {
+    hint.textContent = '✅ جاهز — اضغط للمعاينة';
+    hint.style.color = 'var(--accent)';
+  } else {
+    hint.textContent = 'حدد اسم الموظف والراتب أولاً';
+    hint.style.color = 'var(--muted)';
+  }
+  if (currentStep === 3) buildPreview();
+}
+
+function goToPreview() {
+  const m = getMap();
+  if (!m.name) return alert('⚠️ يرجى تحديد عمود اسم الموظف');
+  if (!m.salary) return alert('⚠️ يرجى تحديد عمود الراتب الأساسي');
+  showStep(3);
+}
+
+function getMap() {
+  return { name:document.getElementById('mapName')?.value||'', salary:document.getElementById('mapSalary')?.value||'',
+    late:document.getElementById('mapLate')?.value||'', absent:document.getElementById('mapAbsent')?.value||'',
+    bonus:document.getElementById('mapBonus')?.value||'' };
+}
+
+// ==================== CALC ====================
+// Convert Arabic-Indic digits (٠١٢...) and Western digits to number
+function parseNum(val) {
+  if (val === null || val === undefined || val === '') return 0;
+  if (typeof val === 'number') return val;
+  const s = String(val)
+    .replace(/[٠١٢٣٤٥٦٧٨٩]/g, d => d.charCodeAt(0) - 1632) // Arabic-Indic
+    .replace(/[۰۱۲۳۴۵۶۷۸۹]/g, d => d.charCodeAt(0) - 1776) // Extended
+    .replace(/,/g, '')   // thousands separator
+    .replace(/\s/g, '')  // spaces
+    .trim();
+  const n = parseFloat(s);
+  return isNaN(n) ? 0 : n;
+}
+
+function calcEmp(row) {
+  const map = getMap();
+  const lr  = parseFloat(document.getElementById('lateRate').value)/100;
+  const ar  = parseFloat(document.getElementById('absentRate').value)/100;
+  const wd  = parseFloat(document.getElementById('workDays').value)||26;
+  const name   = String(row[map.name]||'').trim();
+  const base   = parseNum(row[map.salary]);
+  const late   = parseNum(row[map.late]);
+  const absent = parseNum(row[map.absent]);
+  const bonus  = parseNum(row[map.bonus]);
+  const daily  = base/wd;
+  const lateD  = Math.round(late*daily*lr*100)/100;
+  const absD   = Math.round(absent*daily*ar*100)/100;
+  const net    = Math.round((base-lateD-absD+bonus)*100)/100;
+  return {name,base,late,absent,bonus,lateD,absD,net};
+}
+
+function fmt(n) { return Number(n).toLocaleString('ar-EG',{maximumFractionDigits:0}); }
+
+// ==================== PREVIEW ====================
+function buildPreview() {
+  const map = getMap();
+  if (!map.name||!map.salary) return;
+  const emps = rawData.map(r=>calcEmp(r)).filter(e=>e.name);
+  const cur  = document.getElementById('currency').value;
+  const tBase=emps.reduce((s,e)=>s+e.base,0), tDed=emps.reduce((s,e)=>s+e.lateD+e.absD,0);
+  const tBon=emps.reduce((s,e)=>s+e.bonus,0), tNet=emps.reduce((s,e)=>s+e.net,0);
+
+  document.getElementById('summaryCards').innerHTML = `
+    <div class="sum-card blue"><div class="val">${emps.length}</div><div class="lbl">الموظفين</div></div>
+    <div class="sum-card green"><div class="val">${fmt(tBase)} ${cur}</div><div class="lbl">إجمالي الرواتب</div></div>
+    <div class="sum-card red"><div class="val">-${fmt(tDed)} ${cur}</div><div class="lbl">الخصومات</div></div>
+    <div class="sum-card amber"><div class="val">${fmt(tNet)} ${cur}</div><div class="lbl">الصافي</div></div>`;
+
+  const thead = document.querySelector('#previewTable thead tr');
+  const tbody = document.querySelector('#previewTable tbody');
+  thead.innerHTML='<th>#</th><th>الاسم</th><th>الراتب</th><th>تأخير</th><th>خصم ت</th><th>غياب</th><th>خصم غ</th><th>مكافأة</th><th>الصافي</th>';
+  tbody.innerHTML = emps.map((e,i) => {
+    const pc=e.base?e.net/e.base:1;
+    const nc=pc<.7?'badge-red':pc<.85?'badge-amber':'badge-green';
+    return `<tr><td>${i+1}</td><td><strong>${e.name}</strong></td><td>${fmt(e.base)} ${cur}</td>
+    <td>${e.late>0?`<span class="badge badge-amber">${e.late}</span>`:'-'}</td>
+    <td>${e.lateD>0?`<span class="badge badge-red">-${fmt(e.lateD)}</span>`:'-'}</td>
+    <td>${e.absent>0?`<span class="badge badge-red">${e.absent}</span>`:'-'}</td>
+    <td>${e.absD>0?`<span class="badge badge-red">-${fmt(e.absD)}</span>`:'-'}</td>
+    <td>${e.bonus>0?`<span class="badge badge-green">+${fmt(e.bonus)}</span>`:'-'}</td>
+    <td><span class="badge ${nc}">${fmt(e.net)} ${cur}</span></td></tr>`;
+  }).join('');
+}
+
+// ==================== PDF GENERATION ====================
+async function generatePDF() {
+  const map = getMap();
+  if (!map.name||!map.salary) return showStatus('error','❌ حدد عمودَي الاسم والراتب أولاً');
+  showStatus('info','⏳ جاري إنشاء PDF...');
+  document.getElementById('generateBtn').disabled = true;
+
+  try {
+    const ps  = pdfSettings || DB.getDefaultPdfSettings();
+
+    // ── SLIP MODE: individual block per employee ──
+    if (ps.slipMode) {
+      await generateSlipPDF(ps);
+      document.getElementById('generateBtn').disabled = false;
+      return;
+    }
+
+    const cur = document.getElementById('currency').value;
+    const co  = companyData || {};
+    const monthRaw  = document.getElementById('reportMonth').value;
+    const monthLabel = monthRaw ? new Date(monthRaw+'-01').toLocaleDateString('ar-EG',{year:'numeric',month:'long'}) : '';
+    const emps = rawData.map(r=>calcEmp(r)).filter(e=>e.name);
+    const tBase=emps.reduce((s,e)=>s+e.base,0), tDed=emps.reduce((s,e)=>s+e.lateD+e.absD,0);
+    const tBon=emps.reduce((s,e)=>s+e.bonus,0), tNet=emps.reduce((s,e)=>s+e.net,0);
+
+    // Fill hidden template
+    document.getElementById('pdf-co-name').textContent = co.name || document.getElementById('companyName').value || 'الشركة';
+    document.getElementById('pdf-co-sub').textContent  = `كشف رواتب — ${monthLabel}`;
+    document.getElementById('pdf-meta').innerHTML = `تاريخ الإصدار: ${new Date().toLocaleDateString('ar-EG')}<br>عدد الموظفين: ${emps.length}`;
+
+    // Apply colors
+    const hdr = document.querySelector('#pdf-template .pdf-header');
+    hdr.style.background = `linear-gradient(135deg, ${ps.headerBg}, #0d2137)`;
+    hdr.style.borderBottomColor = ps.accentColor;
+
+    // Logo
+    const logoEl = document.getElementById('pdf-logo');
+    if (ps.showLogo && co.logoDataUrl) {
+      logoEl.src = co.logoDataUrl;
+      logoEl.style.display = 'block';
+    } else { logoEl.style.display = 'none'; }
+
+    // Summary
+    const sumSec = document.getElementById('pdf-summary-section');
+    sumSec.style.display = ps.showSummary ? 'block' : 'none';
+    document.getElementById('pdf-summary').style.gridTemplateColumns = 'repeat(4,1fr)';
+    document.getElementById('pdf-summary').innerHTML = [
+      {l:'إجمالي الموظفين', v:emps.length,          c:'#60a5fa'},
+      {l:'إجمالي الرواتب',  v:`${fmt(tBase)} ${cur}`,c:'#4ade80'},
+      {l:'إجمالي الخصومات', v:`-${fmt(tDed)} ${cur}`,c:'#f87171'},
+      {l:'صافي المدفوعات',  v:`${fmt(tNet)} ${cur}`, c:'#fbbf24'},
+    ].map(s=>`<div class="pdf-sum-box" style="background:${ps.rowBg}"><div class="v" style="color:${s.c}">${s.v}</div><div class="l">${s.l}</div></div>`).join('');
+
+    // Build table columns from settings
+    const cols = ps.columnOrder.filter(c => ps.colVisibility ? ps.colVisibility[c] !== false : true);
+    const colMap = {
+      num:(e,i)=>i+1, name:e=>e.name, base:(e)=>`${fmt(e.base)} ${cur}`,
+      lateDays:e=>e.late||'-', lateDeduct:e=>e.lateD>0?`-${fmt(e.lateD)}`:'-',
+      absentDays:e=>e.absent||'-', absentDeduct:e=>e.absD>0?`-${fmt(e.absD)}`:'-',
+      bonus:e=>e.bonus>0?`+${fmt(e.bonus)}`:'-', net:(e)=>`${fmt(e.net)} ${cur}`
+    };
+    const colColorMap = {
+      lateDeduct:'#f87171', absentDeduct:'#f87171', bonus:'#4ade80'
+    };
+
+    // Apply column widths to table
+    const table = document.getElementById('pdf-table');
+    table.style.tableLayout = 'fixed';
+    const totalW = cols.reduce((s,c) => s+(ps.colWidths[c]||25), 0);
+    document.getElementById('pdf-thead').innerHTML = cols.map(c=>{
+      const w = ((ps.colWidths[c]||25)/totalW*100).toFixed(1);
+      return `<th style="background:${ps.headerBg};color:${ps.headerColor};font-size:${ps.headerFontSize}px;width:${w}%;padding:${ps.rowHeight*0.7}px 8px">${ps.columnLabels[c]||c}</th>`;
+    }).join('');
+
+    document.getElementById('pdf-tbody').innerHTML = emps.map((e,i)=>{
+      const bg = i%2===0 ? ps.rowBg : ps.altRowBg;
+      return `<tr>${cols.map(c=>{
+        const isName = c==='name';
+        const color  = colColorMap[c]||ps.textColor;
+        const val    = colMap[c] ? colMap[c](e,i) : '-';
+        return `<td style="background:${bg};color:${color};font-size:${ps.fontSize}px;padding:${ps.rowHeight*0.7}px 8px;${isName?'text-align:right;font-weight:600;':''}">${val}</td>`;
+      }).join('')}</tr>`;
+    }).join('') + `<tr class="total-row">${cols.map((c,ci)=>{
+      const totals = {num:'',name:'الإجمالي',base:`${fmt(tBase)} ${cur}`,lateDeduct:`-${fmt(tDed)}`,bonus:`+${fmt(tBon)}`,net:`${fmt(tNet)} ${cur}`};
+      const val = totals[c]!==undefined ? totals[c] : '';
+      return `<td style="background:${ps.totalRowBg};color:#fff;font-weight:700;font-size:${ps.fontSize}px;padding:${ps.rowHeight*0.7}px 8px">${val}</td>`;
+    }).join('')}</tr>`;
+
+    document.getElementById('pdf-footer-l').textContent = `${co.name||'الشركة'} | ${new Date().toLocaleDateString('ar-EG')}`;
+
+    // Capture
+    const tmpl = document.getElementById('pdf-template');
+    const canvas = await html2canvas(tmpl, {scale:2, useCORS:true, backgroundColor:'#0d2137', logging:false, width:1122});
+    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+
+    const isLand = ps.orientation !== 'portrait';
+    const doc = new jsPDF({ orientation: ps.orientation, unit:'mm', format: ps.paperSize });
+    const pw = isLand ? 297 : 210;
+    const ph = isLand ? 210 : 297;
+    const imgH = pw * canvas.height / canvas.width;
+
+    if (imgH <= ph) {
+      doc.addImage(imgData,'JPEG',0,0,pw,imgH);
+    } else {
+      let yOff=0, pg=0;
+      const slicePx = Math.round(canvas.width*(ph/pw));
+      while (yOff < canvas.height) {
+        if (pg>0) doc.addPage();
+        const sc=document.createElement('canvas');
+        sc.width=canvas.width; sc.height=Math.min(slicePx,canvas.height-yOff);
+        sc.getContext('2d').drawImage(canvas,0,yOff,canvas.width,sc.height,0,0,canvas.width,sc.height);
+        doc.addImage(sc.toDataURL('image/jpeg',.95),'JPEG',0,0,pw,sc.height/canvas.width*pw);
+        yOff+=slicePx; pg++;
+      }
+    }
+
+    const company = document.getElementById('companyName').value || 'report';
+    const fname   = `${company}_${monthRaw||'payroll'}`.replace(/\s+/g,'_');
+    doc.save(`${fname}.pdf`);
+
+    // Save to history
+    await DB.saveReport(currentUser.id, {
+      name: `${company} — ${monthLabel}`,
+      month: monthRaw,
+      employees: emps.length,
+      totalNet: tNet,
+      currency: cur
+    });
+
+    showStatus('success', `✅ PDF جاهز! تم حفظه في سجل التقارير`);
+  } catch(err) {
+    console.error(err);
+    showStatus('error','❌ خطأ: '+err.message);
+  }
+  document.getElementById('generateBtn').disabled = false;
+}
+
+// ── SLIP MODE PDF ──────────────────────────────────────────────────────
+async function generateSlipPDF(ps) {
+  try {
+    const cur       = document.getElementById('currency').value;
+    const co        = companyData || {};
+    const monthRaw  = document.getElementById('reportMonth').value;
+    const monthLabel = monthRaw ? new Date(monthRaw+'-01').toLocaleDateString('ar-EG',{year:'numeric',month:'long'}) : '';
+    const emps      = rawData.map(r=>calcEmp(r)).filter(e=>e.name);
+    if (!emps.length) return showStatus('error','❌ لا توجد بيانات');
+
+    const cols      = (ps.columnOrder||[]).filter(c => !ps.colVisibility || ps.colVisibility[c] !== false);
+    const colLabels = ps.columnLabels || {};
+    const colWidths = ps.colWidths   || {};
+    const colColorMap = { lateDeduct:'#f87171', absentDeduct:'#f87171', bonus:'#4ade80' };
+    const colValueMap = {
+      num:   (_,i) => i+1,
+      name:  e => e.name,
+      base:  e => `${fmt(e.base)} ${cur}`,
+      lateDays:      e => e.late||'-',
+      lateDeduct:    e => e.lateD>0?`-${fmt(e.lateD)}`:'-',
+      absentDays:    e => e.absent||'-',
+      absentDeduct:  e => e.absD>0?`-${fmt(e.absD)}`:'-',
+      bonus: e => e.bonus>0?`+${fmt(e.bonus)}`:'-',
+      net:   e => `${fmt(e.net)} ${cur}`,
+    };
+
+    // Logo src
+    const logoSrc = (ps.showLogo && co.logoDataUrl) ? co.logoDataUrl : null;
+
+    // Build HTML blocks — one per employee
+    const totalW = cols.reduce((s,c)=>s+(colWidths[c]||25),0);
+    const colPcts = cols.map(c => ((colWidths[c]||25)/totalW*100).toFixed(1)+'%');
+
+    function buildSlipBlock(emp, idx) {
+      const pct  = emp.base ? emp.net/emp.base : 1;
+      const netC = pct<.7 ? '#f87171' : pct<.85 ? '#fbbf24' : '#4ade80';
+      const headerHtml = `
+        <div style="background:linear-gradient(135deg,${ps.headerBg||'#1a2340'},#0d1525);border-bottom:2px solid ${ps.accentColor||'#40916c'};padding:14px 20px;display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <div style="font-size:17px;font-weight:800;color:#fff">${co.name||'الشركة'}</div>
+            <div style="font-size:12px;color:${ps.accentColor||'#7ecfad'};margin-top:3px">كشف راتب — ${monthLabel}</div>
+          </div>
+          ${logoSrc ? `<img src="${logoSrc}" style="height:48px;max-width:100px;object-fit:contain">` : ''}
+        </div>`;
+
+      const theadHtml = `
+        <tr style="background:${ps.headerBg||'#1e3450'}">
+          ${cols.map((c,ci)=>`<th style="color:${ps.headerColor||'#7ecfad'};font-size:${ps.headerFontSize||11}px;padding:7px 10px;text-align:center;border-bottom:2px solid ${ps.accentColor||'#40916c'};width:${colPcts[ci]}">${colLabels[c]||c}</th>`).join('')}
+        </tr>`;
+
+      const rowHtml = `
+        <tr>
+          ${cols.map(c=>{
+            const isName = c==='name';
+            const color  = c==='net' ? netC : (colColorMap[c]||ps.textColor||'#c5dff0');
+            const val    = colValueMap[c] ? colValueMap[c](emp,idx) : '-';
+            return `<td style="background:${ps.rowBg||'#162336'};color:${color};font-size:${ps.fontSize||10}px;padding:${(ps.rowHeight||10)*0.7}px 10px;${isName?'text-align:right;font-weight:700;':'text-align:center;'}${c==='net'?'font-weight:800;':''}">${val}</td>`;
+          }).join('')}
+        </tr>`;
+
+      return `
+        <div style="margin-bottom:0;page-break-inside:avoid">
+          ${headerHtml}
+          <table style="width:100%;border-collapse:collapse;table-layout:fixed;font-family:'Segoe UI',Tahoma,Arial,sans-serif">
+            <thead>${theadHtml}</thead>
+            <tbody>${rowHtml}</tbody>
+          </table>
+          <div style="padding:7px 20px;display:flex;justify-content:space-between;font-size:10px;color:#3d5a72;background:${ps.rowBg||'#0d1525'};border-top:1px solid #1e3450">
+            <span>${co.name||''} | ${new Date().toLocaleDateString('ar-EG')}</span>
+            <span>PayrollPro</span>
+          </div>
+          <div style="height:20px;background:#0a1020"></div>
+        </div>`;
+    }
+
+    document.getElementById('slip-blocks-container').innerHTML =
+      emps.map((e,i) => buildSlipBlock(e,i)).join('');
+
+    // Capture
+    const slipTmpl = document.getElementById('pdf-slip-template');
+    const canvas   = await html2canvas(slipTmpl, {
+      scale: 2, useCORS: true, backgroundColor: '#0a1020', logging: false, width: 794
+    });
+    const imgData  = canvas.toDataURL('image/jpeg', 0.95);
+
+    // A4 portrait for slips
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const pw = 210, ph = 297;
+    const imgH = pw * canvas.height / canvas.width;
+
+    if (imgH <= ph) {
+      doc.addImage(imgData,'JPEG',0,0,pw,imgH);
+    } else {
+      let yOff=0, pg=0;
+      const slicePx = Math.round(canvas.width*(ph/pw));
+      while (yOff < canvas.height) {
+        if (pg>0) doc.addPage();
+        const sc=document.createElement('canvas');
+        sc.width=canvas.width; sc.height=Math.min(slicePx,canvas.height-yOff);
+        sc.getContext('2d').drawImage(canvas,0,yOff,canvas.width,sc.height,0,0,canvas.width,sc.height);
+        doc.addImage(sc.toDataURL('image/jpeg',.95),'JPEG',0,0,pw,sc.height/canvas.width*pw);
+        yOff+=slicePx; pg++;
+      }
+    }
+
+    const company  = document.getElementById('companyName').value||'report';
+    const fname    = `${company}_${monthRaw||'payroll'}_slips`.replace(/\s+/g,'_');
+    doc.save(`${fname}.pdf`);
+
+    await DB.saveReport(currentUser.id, {
+      name: `${company} — ${monthLabel} (كشوف فردية)`,
+      month: monthRaw, employees: emps.length,
+      totalNet: emps.reduce((s,e)=>s+e.net,0), currency: cur
+    });
+
+    showStatus('success', `✅ PDF كشوف فردية جاهز! (${emps.length} موظف)`);
+    document.getElementById('generateBtn').disabled = false;
+  } catch(err) {
+    console.error(err);
+    showStatus('error','❌ خطأ: '+err.message);
+    document.getElementById('generateBtn').disabled = false;
+  }
+}
+
+function showStatus(type, msg) {
+  const bar = document.getElementById('statusBar');
+  bar.className = 'status-bar '+type;
+  bar.textContent = msg;
+}
+
+// ==================== COMPANY PAGE ====================
+function loadCompanyPage() {
+  const co = companyData || {};
+  if (co.name)     document.getElementById('co-name').value     = co.name;
+  if (co.email)    document.getElementById('co-email').value    = co.email;
+  if (co.phone)    document.getElementById('co-phone').value    = co.phone;
+  if (co.address)  document.getElementById('co-address').value  = co.address;
+  if (co.website)  document.getElementById('co-website').value  = co.website;
+  if (co.activity) document.getElementById('co-activity').value = co.activity;
+  if (co.logoDataUrl) {
+    const img = document.getElementById('logoPreview');
+    img.src = co.logoDataUrl; img.style.display='block';
+    document.getElementById('logoName').textContent = 'لوجو محفوظ ✓';
+  }
+  document.getElementById('logoInput').addEventListener('change', e => {
+    const file = e.target.files[0]; if (!file) return;
+    if (file.size > 2*1024*1024) return alert('حجم الصورة أكبر من 2MB');
+    const reader = new FileReader();
+    reader.onload = ev => {
+      companyData = companyData || {};
+      companyData.logoDataUrl = ev.target.result;
+      const img = document.getElementById('logoPreview');
+      img.src = ev.target.result; img.style.display='block';
+      document.getElementById('logoName').textContent = file.name;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function saveCompany() {
+  companyData = {
+    ...(companyData||{}),
+    name:    document.getElementById('co-name').value,
+    email:   document.getElementById('co-email').value,
+    phone:   document.getElementById('co-phone').value,
+    address: document.getElementById('co-address').value,
+    website: document.getElementById('co-website').value,
+    activity:document.getElementById('co-activity').value,
+  };
+  await DB.saveCompany(currentUser.id, companyData);
+  document.getElementById('companyName').value = companyData.name;
+  const msg = document.getElementById('co-msg');
+  msg.className='status-bar success'; msg.textContent='✅ تم حفظ بيانات الشركة';
+  setTimeout(()=>msg.className='status-bar',3000);
+}
+
+// ==================== PDF SETTINGS PAGE ====================
+function initColorSync() {
+  [['ps-headerBg','ps-headerBgTxt'],['ps-headerColor','ps-headerColorTxt'],
+   ['ps-rowBg','ps-rowBgTxt'],['ps-altRowBg','ps-altRowBgTxt'],
+   ['ps-textColor','ps-textColorTxt'],['ps-accentColor','ps-accentColorTxt']
+  ].forEach(([cid,tid]) => {
+    const ci=document.getElementById(cid), ti=document.getElementById(tid);
+    if (!ci||!ti) return;
+    ci.addEventListener('input', () => ti.value=ci.value);
+    ti.addEventListener('input', () => { if (/^#[0-9a-fA-F]{6}$/.test(ti.value)) ci.value=ti.value; });
+  });
+}
+
+const COL_DEFS = [
+  {id:'num',label:'#'},{id:'name',label:'اسم الموظف'},{id:'base',label:'الراتب الأساسي'},
+  {id:'lateDays',label:'أيام التأخير'},{id:'lateDeduct',label:'خصم التأخير'},
+  {id:'absentDays',label:'أيام الغياب'},{id:'absentDeduct',label:'خصم الغياب'},
+  {id:'bonus',label:'المكافأة'},{id:'net',label:'الراتب الصافي'}
+];
+
+function initColOrderList() {
+  const list = document.getElementById('colOrderList');
+  list.innerHTML = COL_DEFS.map(c => `
+    <div class="col-order-item" draggable="true" data-col="${c.id}" id="coi-${c.id}">
+      <span class="drag-handle">⠿</span>
+      <label>${c.label}</label>
+      <input type="text" id="col-label-${c.id}" value="${c.label}" placeholder="تسمية العمود" title="اسم العمود في PDF">
+      <input type="number" id="col-w-${c.id}" value="25" min="8" max="80" title="عرض العمود (mm)">
+      <button class="vis-toggle on" id="col-vis-${c.id}" onclick="toggleColVis('${c.id}')" title="إظهار/إخفاء"></button>
+    </div>`).join('');
+  initDragSort();
+}
+
+function toggleColVis(id) {
+  const btn = document.getElementById('col-vis-'+id);
+  btn.classList.toggle('on'); btn.classList.toggle('off');
+}
+
+function initDragSort() {
+  const list = document.getElementById('colOrderList');
+  let dragged = null;
+  list.querySelectorAll('.col-order-item').forEach(item => {
+    item.addEventListener('dragstart', () => { dragged=item; item.style.opacity='.5'; });
+    item.addEventListener('dragend',   () => { dragged=null; item.style.opacity=''; });
+    item.addEventListener('dragover',  e => { e.preventDefault(); const rect=item.getBoundingClientRect(); const mid=rect.top+rect.height/2; if(dragged&&dragged!==item) list.insertBefore(dragged, e.clientY<mid?item:item.nextSibling); });
+  });
+}
+
+function loadPdfSettingsPage() {
+  const ps = pdfSettings || DB.getDefaultPdfSettings();
+  const set = (id,v) => { const el=document.getElementById(id); if(el) el.value=v; };
+  set('ps-orientation', ps.orientation);
+  set('ps-paper',       ps.paperSize);
+  set('ps-fontSize',    ps.fontSize);
+  set('ps-headerFontSize', ps.headerFontSize);
+  set('ps-rowHeight',   ps.rowHeight);
+  set('ps-headerBg',    ps.headerBg);      set('ps-headerBgTxt',    ps.headerBg);
+  set('ps-headerColor', ps.headerColor);   set('ps-headerColorTxt', ps.headerColor);
+  set('ps-rowBg',       ps.rowBg);         set('ps-rowBgTxt',       ps.rowBg);
+  set('ps-altRowBg',    ps.altRowBg);      set('ps-altRowBgTxt',    ps.altRowBg);
+  set('ps-textColor',   ps.textColor);     set('ps-textColorTxt',   ps.textColor);
+  set('ps-accentColor', ps.accentColor);   set('ps-accentColorTxt', ps.accentColor);
+  document.getElementById('ps-showLogo').checked    = ps.showLogo    !== false;
+  document.getElementById('ps-showSummary').checked = ps.showSummary !== false;
+  document.getElementById('ps-slipMode').checked    = ps.slipMode    === true;
+  // Col widths + labels
+  COL_DEFS.forEach(c => {
+    const wEl = document.getElementById('col-w-'+c.id);
+    const lEl = document.getElementById('col-label-'+c.id);
+    if (wEl && ps.colWidths[c.id]) wEl.value = ps.colWidths[c.id];
+    if (lEl && ps.columnLabels[c.id]) lEl.value = ps.columnLabels[c.id];
+    if (ps.colVisibility) {
+      const vis = ps.colVisibility[c.id] !== false;
+      const btn = document.getElementById('col-vis-'+c.id);
+      if (btn) { btn.className='vis-toggle '+(vis?'on':'off'); }
+    }
+  });
+  // Column order
+  if (ps.columnOrder) {
+    const list = document.getElementById('colOrderList');
+    ps.columnOrder.forEach(cid => {
+      const el = document.getElementById('coi-'+cid);
+      if (el) list.appendChild(el);
+    });
+  }
+}
+
+async function savePdfSettings() {
+  const getV = id => { const el=document.getElementById(id); return el?el.value:null; };
+  const ps = {
+    orientation:    getV('ps-orientation'),
+    paperSize:      getV('ps-paper'),
+    fontSize:       parseFloat(getV('ps-fontSize')),
+    headerFontSize: parseFloat(getV('ps-headerFontSize')),
+    rowHeight:      parseFloat(getV('ps-rowHeight')),
+    headerBg:       getV('ps-headerBgTxt'),
+    headerColor:    getV('ps-headerColorTxt'),
+    rowBg:          getV('ps-rowBgTxt'),
+    altRowBg:       getV('ps-altRowBgTxt'),
+    textColor:      getV('ps-textColorTxt'),
+    accentColor:    getV('ps-accentColorTxt'),
+    showLogo:       document.getElementById('ps-showLogo').checked,
+    showSummary:    document.getElementById('ps-showSummary').checked,
+    slipMode:       document.getElementById('ps-slipMode').checked,
+    colWidths: {}, columnLabels: {}, columnOrder: [], colVisibility: {}
+  };
+  document.querySelectorAll('.col-order-item').forEach(item => {
+    const cid = item.dataset.col;
+    ps.columnOrder.push(cid);
+    const wEl = document.getElementById('col-w-'+cid);
+    const lEl = document.getElementById('col-label-'+cid);
+    const vBtn = document.getElementById('col-vis-'+cid);
+    if (wEl) ps.colWidths[cid]     = parseFloat(wEl.value)||25;
+    if (lEl) ps.columnLabels[cid]  = lEl.value;
+    if (vBtn) ps.colVisibility[cid] = vBtn.classList.contains('on');
+  });
+  await DB.savePdfSettings(currentUser.id, ps);
+  pdfSettings = ps;
+  const msg = document.getElementById('ps-msg');
+  msg.className='status-bar success'; msg.textContent='✅ تم حفظ إعدادات التصميم';
+  setTimeout(()=>msg.className='status-bar',3000);
+}
+
+async function resetPdfSettings() {
+  pdfSettings = DB.getDefaultPdfSettings();
+  await DB.savePdfSettings(currentUser.id, pdfSettings);
+  initColOrderList(); loadPdfSettingsPage();
+  const msg = document.getElementById('ps-msg');
+  msg.className='status-bar info'; msg.textContent='↩ تم استعادة الإعدادات الافتراضية';
+  setTimeout(()=>msg.className='status-bar',3000);
+}
+
+// ==================== REPORTS ====================
+async function loadReports() {
+  const list = await DB.getReports(currentUser.id);
+  const el   = document.getElementById('reports-list');
+  if (!list.length) {
+    el.innerHTML='<div class="empty-state"><div class="ico">📭</div><p>لا توجد تقارير محفوظة بعد</p></div>';
+    return;
+  }
+  el.innerHTML = '<div class="reports-list">'+list.reverse().map(r=>`
+    <div class="report-item">
+      <div class="info">
+        <div class="name">📄 ${r.name||'تقرير'}</div>
+        <div class="meta">${r.employees} موظف · صافي: ${fmt(r.totalNet)} ${r.currency} · ${new Date(r.createdAt).toLocaleDateString('ar-EG')}</div>
+      </div>
+    </div>`).join('')+'</div>';
+}
+</script>
+</body>
+</html>
