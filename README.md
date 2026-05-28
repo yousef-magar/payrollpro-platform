@@ -2,7 +2,7 @@
 
 Modern Payroll Management System built with Vanilla JavaScript.
 
-![PayrollPro Preview]([./preview.png](https://yousef-magar.github.io/payrollpro-platform/))
+![PayrollPro Preview]((https://yousef-magar.github.io/payrollpro-platform/))
 
 ## 🚀 Features
 
