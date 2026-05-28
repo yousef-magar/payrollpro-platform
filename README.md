@@ -2,7 +2,7 @@
 
 Modern Payroll Management System built with Vanilla JavaScript.
 
-![PayrollPro Preview](./preview.png)
+![PayrollPro Preview]([./preview.png](https://yousef-magar.github.io/payrollpro-platform/))
 
 ## 🚀 Features
 
@@ -51,7 +51,7 @@ PayrollPro/
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/yourusername/payrollpro.git
+git clone https://github.com/yousef-magar/payrollpro-platform.git
 ```
 
 ### 2. Open the project
@@ -102,19 +102,6 @@ Save:
 - Dark premium theme
 - Interactive dashboard
 - Smooth animations
-
----
-
-## 📸 Screenshots
-
-### Landing Page
-(Add Screenshot)
-
-### Dashboard
-(Add Screenshot)
-
-### PDF Reports
-(Add Screenshot)
 
 ---
 
